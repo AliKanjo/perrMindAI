@@ -1,0 +1,31 @@
+@model UserProfile?
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "Verify your email";
+}
+<div class="center">
+    <div class="card c" style="max-width:480px;width:100%;padding:40px">
+        @if (Model == null)
+        {
+            <span class="ico bad" style="width:64px;height:64px">@Ui.Icon("x", 30)</span>
+            <h1 style="font-size:26px;margin-top:18px">This link is not valid</h1>
+            <p class="sub mt1">The verification link was already used or has expired. Log in to get a new one.</p>
+            <a class="btn btn-pri btn-block btn-lg" style="margin-top:22px" asp-action="Login">Back to log in</a>
+        }
+        else
+        {
+            <span class="ico" style="width:64px;height:64px">@Ui.Icon("mail", 30)</span>
+            <h1 style="font-size:26px;margin-top:18px">Verify your email</h1>
+            <p class="sub mt1">Confirm that <b style="color:var(--tx)">@Model.Email</b> belongs to you to activate your account.</p>
+            <div class="alert alert-info" style="margin:22px 0;text-align:left">
+                Demo note: this project has no mail server, so the page you would normally open from the e-mail link is shown right here.
+            </div>
+            <form asp-action="ConfirmEmail" method="post">
+                <input type="hidden" name="token" value="@ViewBag.Token">
+                <input type="hidden" name="tutor" value="@(ViewBag.WantsToTutor == true ? "true" : "false")">
+                <button type="submit" class="btn btn-pri btn-block btn-lg">Verify my email</button>
+            </form>
+            <p style="margin-top:16px"><a class="sm b" style="color:var(--pri)" asp-action="Login">← Back to log in</a></p>
+        }
+    </div>
+</div>

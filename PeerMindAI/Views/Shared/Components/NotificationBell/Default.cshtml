@@ -1,0 +1,8 @@
+@model int
+<a class="bellb" href="/notifications" title="Notifications" aria-label="Notifications (@Model unread)">
+    @Ui.Icon("bell")
+    @if (Model > 0)
+    {
+        <i id="bell-dot"></i>
+    }
+</a>

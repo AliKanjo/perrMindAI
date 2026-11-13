@@ -1,0 +1,102 @@
+@model UserProfile
+@{
+    ViewData["Title"] = Model.FullName;
+    ViewData["Nav"] = "users";
+    var isSelf = Model.UserId == User.GetUserId();
+    var isSuspended = Model.Status == UserStatus.Suspended;
+}
+<a class="sm b row mb" style="color:var(--pri)" href="/admin/users">@Ui.Icon("left") Back to users</a>
+
+<div class="g12">
+    <div class="card c" style="align-self:start">
+        @Ui.Avatar(Model.FullName, 84)
+        <h2 style="margin-top:12px">@Model.FullName</h2>
+        <p class="sub sm">@Model.Email</p>
+        <div class="row" style="justify-content:center;margin:12px 0">@Ui.RoleBadge(Model.Role)@Ui.StatusBadge(Model.Status)</div>
+        <hr class="hr">
+        <div class="col sm" style="text-align:left">
+            <div class="rowb"><span class="sub">University</span><b>@(Model.University ?? "—")</b></div>
+            <div class="rowb"><span class="sub">Department</span><b>@(Model.Department ?? "—")</b></div>
+            <div class="rowb"><span class="sub">Year of study</span><b>@(Model.YearOfStudy?.ToString() ?? "—")</b></div>
+            <div class="rowb"><span class="sub">Email verified</span><b>@(Model.EmailVerified ? "Yes" : "No")</b></div>
+            <div class="rowb"><span class="sub">Joined</span><b>@Model.CreatedAt.ToString("d MMM yyyy")</b></div>
+            <div class="rowb"><span class="sub">Last active</span><b>@(Model.LastActiveAt == null ? "Never" : Ui.Ago(Model.LastActiveAt.Value))</b></div>
+        </div>
+    </div>
+
+    <div class="col">
+        @if (Model.IsApprovedTutor)
+        {
+            <div class="card">
+                <h3>Tutor profile</h3>
+                <p class="sm sub mt1">@Model.TutorHeadline</p>
+                <p class="sm" style="margin-top:8px">@Ui.Stars(Model.TutorRating ?? 0) average rating</p>
+            </div>
+        }
+
+        <div class="card">
+            <h3>Access controls</h3>
+            @if (isSelf)
+            {
+                <p class="sm sub mt1">This is your own account. You cannot suspend or delete yourself.</p>
+            }
+            else
+            {
+                <div class="rowb" style="padding:12px 0;border-bottom:1px solid #EEF1F6">
+                    <div>
+                        <div class="b sm">@(isSuspended ? "Account suspended" : "Account access")</div>
+                        <div class="xs sub">@(isSuspended ? "The user cannot log in." : "Suspending signs the user out immediately.")</div>
+                    </div>
+                    @if (isSuspended)
+                    {
+                        <form method="post" action="/admin/users/@Model.UserId/status">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="status" value="Active">
+                            <button type="submit" class="btn btn-okb">Re-activate</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-bad" data-modal="suspend-modal">Suspend</button>
+                    }
+                </div>
+                <div class="rowb" style="padding:12px 0">
+                    <div>
+                        <div class="b sm">Delete account</div>
+                        <div class="xs sub">Only possible for accounts without bookings or other activity.</div>
+                    </div>
+                    <button type="button" class="btn btn-sec" data-modal="delete-modal">Delete</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Modals {
+    @if (!isSelf)
+    {
+        <div class="modal" id="suspend-modal">
+            <div class="mbox">
+                <h2>Suspend @Model.FullName?</h2>
+                <p class="sub mt1 mb">The user will lose access immediately. You can restore it any time.</p>
+                <form method="post" action="/admin/users/@Model.UserId/status" class="row" style="justify-content:flex-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="status" value="Suspended">
+                    <button type="button" class="btn btn-sec" data-close>Cancel</button>
+                    <button type="submit" class="btn btn-bad">Suspend</button>
+                </form>
+            </div>
+        </div>
+        <div class="modal" id="delete-modal">
+            <div class="mbox">
+                <h2>Delete @Model.FullName?</h2>
+                <p class="sub mt1 mb">This permanently removes the account. It cannot be undone.</p>
+                <form method="post" action="/admin/users/@Model.UserId/delete" class="row" style="justify-content:flex-end">
+                    @Html.AntiForgeryToken()
+                    <button type="button" class="btn btn-sec" data-close>Cancel</button>
+                    <button type="submit" class="btn btn-bad">Delete permanently</button>
+                </form>
+            </div>
+        </div>
+    }
+}

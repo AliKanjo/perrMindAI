@@ -1,0 +1,67 @@
+@model List<Booking>
+@{
+    ViewData["Title"] = "My bookings";
+    ViewData["Nav"] = "bookings";
+
+    // one tab per group of statuses
+    var tabs = new[]
+    {
+        ("upcoming", "Upcoming", Model.Where(b => b.IsActive).OrderBy(b => b.StartAt).ToList(), "You have no upcoming sessions."),
+        ("completed", "Completed", Model.Where(b => b.Status == BookingStatus.Completed).ToList(), "You have not completed a session yet."),
+        ("cancelled", "Cancelled", Model.Where(b => b.Status is BookingStatus.Cancelled or BookingStatus.Declined).ToList(), "No cancelled or declined sessions.")
+    };
+}
+<div class="ph">
+    <div><h1>My bookings</h1><p>Upcoming, completed and cancelled sessions.</p></div>
+    <div class="row wrap"><a class="btn btn-pri" href="/tutors">@Ui.Icon("plus") Book a session</a></div>
+</div>
+
+<div class="tabs mb" role="tablist">
+    @foreach (var (key, label, bookings, _) in tabs)
+    {
+        <button type="button" class="tab @(key == "upcoming" ? "active" : "")" data-tab="@key" style="border:0;background:none" role="tab">@label (@bookings.Count)</button>
+    }
+</div>
+
+@foreach (var (key, _, bookings, emptyText) in tabs)
+{
+    <div class="card flat @(key == "upcoming" ? "" : "hide")" data-panel="@key">
+        @if (bookings.Count == 0)
+        {
+            <div class="empty">
+                <span class="ico">@Ui.Icon("cal", 20)</span>
+                <h3>@emptyText</h3>
+                <p class="sm">Sessions you book will be listed here.</p>
+            </div>
+        }
+        @foreach (var booking in bookings)
+        {
+            <div class="li" style="padding:16px 22px">
+                @Ui.Avatar(booking.TutorName, 46)
+                <div class="grow">
+                    <div class="b">@booking.CourseName with @booking.TutorName</div>
+                    <div class="sm sub">@Ui.When(booking.StartAt) · @booking.BookingCode · @Ui.Money(booking.Price)</div>
+                </div>
+                @if (booking.Status == BookingStatus.Completed && booking.ReviewId == null)
+                {
+                    @Ui.Badge("Review pending", "warn")
+                }
+                @Ui.StatusBadge(booking.Status)
+                <a class="btn btn-sec btn-sm" href="/bookings/@booking.BookingId">View details</a>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // tabs: show the panel that belongs to the clicked tab
+        (function () {
+            const { $$ } = window.PeerMind;
+            $$('[data-tab]').forEach(tab => tab.addEventListener('click', () => {
+                $$('[data-tab]').forEach(other => other.classList.toggle('active', other === tab));
+                $$('[data-panel]').forEach(panel => panel.classList.toggle('hide', panel.dataset.panel !== tab.dataset.tab));
+            }));
+        })();
+    </script>
+}

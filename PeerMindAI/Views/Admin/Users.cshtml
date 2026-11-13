@@ -1,0 +1,59 @@
+@model UserListPage
+@{
+    ViewData["Title"] = "All users";
+    ViewData["Nav"] = "users";
+}
+<div class="ph">
+    <div><h1>All users</h1><p>Search and filter students, tutors and administrators.</p></div>
+</div>
+
+<div class="card mb">
+    <form method="get" action="/admin/users" class="row wrap">
+        <input class="in grow" name="q" value="@Model.Search" placeholder="Search by name or email…" maxlength="100" style="min-width:220px" aria-label="Search users">
+        <select class="sel in" name="role" style="width:170px" aria-label="Role">
+            <option value="">All roles</option>
+            <option value="Student" selected="@(Model.Role == Roles.Student)">Students</option>
+            <option value="Tutor" selected="@(Model.Role == Roles.Tutor)">Tutors</option>
+            <option value="Admin" selected="@(Model.Role == Roles.Admin)">Admins</option>
+        </select>
+        <select class="sel in" name="status" style="width:190px" aria-label="Status">
+            <option value="">All statuses</option>
+            <option value="Active" selected="@(Model.Status == UserStatus.Active)">Active</option>
+            <option value="PendingVerification" selected="@(Model.Status == UserStatus.PendingVerification)">Pending verification</option>
+            <option value="Suspended" selected="@(Model.Status == UserStatus.Suspended)">Suspended</option>
+        </select>
+        <button type="submit" class="btn btn-pri">@Ui.Icon("search") Search</button>
+        <a class="btn btn-sec" href="/admin/users">Clear</a>
+    </form>
+</div>
+
+<div class="card flat">
+    @if (Model.Users.Count == 0)
+    {
+        <div class="empty">
+            <span class="ico">@Ui.Icon("users", 20)</span>
+            <h3>No users found</h3>
+            <p class="sm">No account matches these filters.</p>
+        </div>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>User</th><th>University</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    <tr>
+                        <td><div class="row">@Ui.Avatar(user.FullName, 38)<div><div class="b">@user.FullName</div><div class="xs sub">@user.Email</div></div></div></td>
+                        <td>@(user.University ?? "—")</td>
+                        <td>@Ui.RoleBadge(user.Role)</td>
+                        <td>@Ui.StatusBadge(user.Status)</td>
+                        <td class="sm sub">@user.CreatedAt.ToString("d MMM yyyy")</td>
+                        <td><a class="btn btn-sec btn-sm" href="/admin/users/@user.UserId">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+<p class="xs sub mt1">@Model.Users.Count user(s)</p>

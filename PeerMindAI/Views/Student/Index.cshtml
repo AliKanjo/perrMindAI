@@ -1,0 +1,76 @@
+@model StudentDashboard
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Nav"] = "dashboard";
+}
+<div class="ph">
+    <div><h1>Welcome, @Model.FirstName 👋</h1><p>Here is your tutoring overview.</p></div>
+    <div class="row wrap"><a class="btn btn-pri" href="/tutors">@Ui.Icon("search") Find a tutor</a></div>
+</div>
+
+<div class="g4">
+    <div class="card row"><span class="ico blue">@Ui.Icon("cal", 20)</span><div class="stat"><span class="n">@Model.Upcoming.Count</span><span class="l">Upcoming sessions</span></div></div>
+    <div class="card row"><span class="ico warn">@Ui.Icon("clock", 20)</span><div class="stat"><span class="n">@Model.PendingRequests</span><span class="l">Waiting for tutor</span></div></div>
+    <div class="card row"><span class="ico ok">@Ui.Icon("check", 20)</span><div class="stat"><span class="n">@Model.CompletedSessions</span><span class="l">Completed sessions</span></div></div>
+    <div class="card row"><span class="ico">@Ui.Icon("star", 20)</span><div class="stat"><span class="n">@Model.ToReview.Count</span><span class="l">Sessions to review</span></div></div>
+</div>
+
+<div class="g21 mt">
+    <div class="card">
+        <div class="rowb mb"><h3>Upcoming sessions</h3><a class="sm b" style="color:var(--pri)" href="/bookings">All bookings</a></div>
+        @if (Model.Upcoming.Count == 0)
+        {
+            <div class="empty">
+                <span class="ico">@Ui.Icon("cal", 20)</span>
+                <h3>No upcoming sessions</h3>
+                <p class="sm">Book a verified tutor when you need help with a course.</p>
+                <a class="btn btn-pri btn-sm" style="margin-top:14px" href="/tutors">Find a tutor</a>
+            </div>
+        }
+        @foreach (var booking in Model.Upcoming)
+        {
+            <a class="li" href="/bookings/@booking.BookingId">
+                @Ui.Avatar(booking.TutorName, 40)
+                <div class="grow">
+                    <div class="b sm">@booking.CourseName with @booking.TutorName</div>
+                    <div class="xs sub">@Ui.When(booking.StartAt) · @(booking.Topic ?? "No topic")</div>
+                </div>
+                @Ui.StatusBadge(booking.Status)
+                @Ui.Icon("arrow")
+            </a>
+        }
+    </div>
+
+    <div class="col">
+        <div class="card">
+            <h3>Rate your sessions</h3>
+            <p class="sub sm mb">Your feedback helps other students.</p>
+            @if (Model.ToReview.Count == 0)
+            {
+                <p class="sm sub">Nothing to review right now.</p>
+            }
+            @foreach (var booking in Model.ToReview)
+            {
+                <a class="li" href="/bookings/@booking.BookingId#review">
+                    @Ui.Avatar(booking.TutorName, 36)
+                    <div class="grow"><div class="b sm">@booking.TutorName</div><div class="xs sub">@booking.CourseName · @Ui.Day(booking.StartAt)</div></div>
+                    <span class="btn btn-sec btn-sm">Review</span>
+                </a>
+            }
+        </div>
+
+        <div class="card" style="background:var(--priS);border-color:#C7C2FB">
+            <h3>Become a tutor</h3>
+            @if (Model.Application == null)
+            {
+                <p class="sm sub mb">Did well in a course? Help other students and earn on your own schedule.</p>
+                <a class="btn btn-pri btn-block" href="/tutor/application">Apply now</a>
+            }
+            else
+            {
+                <p class="sm sub mb">Your application: @Ui.StatusBadge(Model.Application.Status)</p>
+                <a class="btn btn-sec btn-block" href="/tutor/verification">View status</a>
+            }
+        </div>
+    </div>
+</div>

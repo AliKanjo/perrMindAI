@@ -1,0 +1,63 @@
+@model RegisterForm
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "Create account";
+    ViewData["SideTitle"] = "Join PeerMindAI";
+    ViewData["SideText"] = "Create a free account with your university email.";
+}
+<div class="auth">
+    <partial name="_AuthSide" />
+    <div class="authR">
+        <div class="authBox">
+            <h1>Create account</h1>
+            <p class="sub mb">Start learning in under a minute.</p>
+
+            <partial name="_FormErrors" />
+            <form asp-action="Register" method="post" novalidate data-validate>
+                <div class="field">
+                    <label asp-for="FullName"></label>
+                    <input asp-for="FullName" class="in" placeholder="Aylin Kaya" autocomplete="name">
+                    <span asp-validation-for="FullName" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" class="in" placeholder="you@university.edu" autocomplete="email">
+                    <span asp-validation-for="Email" class="err"></span>
+                    <span class="hint">Only university email addresses (e.g. @@university.edu, @@isikun.edu.tr) are accepted.</span>
+                </div>
+                <div class="field">
+                    <label asp-for="UniversityId"></label>
+                    <select asp-for="UniversityId" class="sel in"
+                            asp-items="@(new SelectList(Model.Universities, "UniversityId", "Name"))">
+                        <option value="">Select your university (optional)</option>
+                    </select>
+                </div>
+                <div class="g2" style="gap:12px">
+                    <div class="field">
+                        <label asp-for="Password"></label>
+                        <input asp-for="Password" class="in" placeholder="At least 10 characters" autocomplete="new-password">
+                        <span asp-validation-for="Password" class="err"></span>
+                    </div>
+                    <div class="field">
+                        <label asp-for="ConfirmPassword"></label>
+                        <input asp-for="ConfirmPassword" class="in" autocomplete="new-password">
+                        <span asp-validation-for="ConfirmPassword" class="err"></span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>I am a…</label>
+                    <div class="row">
+                        <label class="rolec"><input type="radio" asp-for="WantsToTutor" value="false" class="hide"><div class="b">🎓 Student</div><div class="xs sub">Learn and book tutors</div></label>
+                        <label class="rolec"><input type="radio" asp-for="WantsToTutor" value="true" class="hide"><div class="b">🧑‍🏫 Tutor</div><div class="xs sub">Apply after sign-up</div></label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="row sm" style="font-weight:400"><input asp-for="AcceptTerms" data-must-check="You must accept the Terms and Privacy Policy."> I agree to the Terms and Privacy Policy</label>
+                    <span asp-validation-for="AcceptTerms" class="err"></span>
+                </div>
+                <button type="submit" class="btn btn-pri btn-block btn-lg">Create account</button>
+            </form>
+            <p class="sm c" style="margin-top:22px">Already have an account? <a class="b" style="color:var(--pri)" asp-action="Login">Log in</a></p>
+        </div>
+    </div>
+</div>

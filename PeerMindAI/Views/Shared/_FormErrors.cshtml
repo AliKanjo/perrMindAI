@@ -1,0 +1,17 @@
+@* Errors that do not belong to one field (for example a message raised by a stored procedure) *@
+@{
+    var errors = ViewData.ModelState
+        .Where(entry => entry.Key == "")
+        .SelectMany(entry => entry.Value!.Errors)
+        .Select(error => error.ErrorMessage)
+        .ToList();
+}
+@if (errors.Count > 0)
+{
+    <div class="alert alert-bad" role="alert">
+        @foreach (var error in errors)
+        {
+            <div>@error</div>
+        }
+    </div>
+}

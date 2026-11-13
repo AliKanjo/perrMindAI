@@ -1,0 +1,9 @@
+@* Purple panel on the left of the log-in and sign-up pages. ViewData: SideTitle, SideText *@
+<div class="authL">
+    <a href="/"><partial name="_Brand" /></a>
+    <div>
+        <h1 style="font-size:40px">@ViewData["SideTitle"]</h1>
+        <p style="margin-top:14px;opacity:.85;font-size:17px;max-width:420px">@ViewData["SideText"]</p>
+    </div>
+    <div class="row" style="opacity:.85">@Ui.Icon("shield")<span class="sm">University-verified community</span></div>
+</div>

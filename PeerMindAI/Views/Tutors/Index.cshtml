@@ -1,0 +1,43 @@
+@model TutorSearchPage
+@{
+    ViewData["Title"] = "Find a tutor";
+    ViewData["Nav"] = "tutors";
+}
+<div class="ph">
+    <div><h1>Find a tutor</h1><p>Search verified peer tutors by course, rating and availability.</p></div>
+</div>
+
+@* The filters send no form: tutor-search.js asks /tutors/search for JSON and redraws the cards. *@
+<div class="card mb">
+    <form id="tutor-filters" class="row wrap" onsubmit="return false">
+        <div class="field grow" style="margin:0;min-width:220px">
+            <input class="in" id="filter-search" name="q" value="@Model.Search" placeholder="Search tutor or course…" maxlength="100" aria-label="Search tutor or course">
+        </div>
+        <select class="sel in" id="filter-course" style="width:220px" aria-label="Course">
+            <option value="">All courses</option>
+            @foreach (var course in Model.Courses)
+            {
+                <option value="@course.CourseId" selected="@(course.CourseId == Model.CourseId)">@course.Name</option>
+            }
+        </select>
+        <select class="sel in" id="filter-rating" style="width:150px" aria-label="Minimum rating">
+            <option value="">Any rating</option>
+            <option value="4">4.0+</option>
+            <option value="4.5">4.5+</option>
+            <option value="5">5.0</option>
+        </select>
+        <select class="sel in" id="filter-days" style="width:170px" aria-label="Availability">
+            <option value="">Any time</option>
+            <option value="0">Available today</option>
+            <option value="2">Next 3 days</option>
+            <option value="6">This week</option>
+        </select>
+    </form>
+</div>
+
+<p class="sm sub mb" id="tutor-count" aria-live="polite">Loading tutors…</p>
+<div class="g3" id="tutor-results"></div>
+
+@section Scripts {
+    <script src="~/js/tutor-search.js" asp-append-version="true"></script>
+}

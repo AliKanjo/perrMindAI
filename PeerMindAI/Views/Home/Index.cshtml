@@ -1,0 +1,113 @@
+@model List<TutorCard>
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "AI-powered peer tutoring";
+    var steps = new[]
+    {
+        ("Create your account", "Sign up with your university e-mail address."),
+        ("Find a tutor", "Search verified peer tutors by course and rating."),
+        ("Book a session", "Pick a free time slot and send your request."),
+        ("Learn and review", "Meet your tutor, then rate the session.")
+    };
+    var reasons = new[]
+    {
+        "Verified university tutors only", "Search by course, rating and availability",
+        "Book and cancel in seconds", "No double bookings, guaranteed by the database",
+        "Honest reviews after every session", "Privacy-first and university-restricted"
+    };
+}
+<div class="pnav">
+    <div class="in2">
+        <a href="/"><partial name="_Brand" /></a>
+        <div class="links"><a href="#how">How it works</a><a href="#tutors">Tutors</a><a href="#why">Why PeerMindAI</a></div>
+        <div class="row">
+            <a class="btn btn-ghost" asp-controller="Account" asp-action="Login">Log in</a>
+            <a class="btn btn-pri" asp-controller="Account" asp-action="Register">Get started</a>
+        </div>
+    </div>
+</div>
+
+<section class="hero">
+    <div class="sec" style="display:grid;grid-template-columns:1.1fr 1fr;gap:50px;align-items:center;padding-top:70px;padding-bottom:90px">
+        <div>
+            <span class="badge b-pri">@Ui.Icon("spark", 14) Peer learning for university students</span>
+            <h1 style="margin-top:18px">Learn faster with <span class="grad">verified</span> peer tutors</h1>
+            <p class="sub" style="font-size:18px;margin:20px 0 28px;max-width:520px">Find a student who already aced your course, book a session in two clicks and get the help you need before the exam.</p>
+            <div class="row wrap">
+                <a class="btn btn-pri btn-lg" asp-controller="Account" asp-action="Register">Get started free @Ui.Icon("arrow")</a>
+                <a class="btn btn-sec btn-lg" asp-controller="Account" asp-action="Login">Log in</a>
+            </div>
+            <p class="xs sub" style="margin-top:16px">Only university email addresses are accepted.</p>
+        </div>
+        <div class="mock">
+            <div class="rowb mb"><div class="b">Top tutors right now</div>@Ui.Badge("Live from the database", "pri")</div>
+            <div class="col">
+                @foreach (var tutor in Model)
+                {
+                    <div class="row sm">
+                        @Ui.Avatar(tutor.FullName, 36)
+                        <div class="grow"><div class="b">@tutor.FullName</div><div class="xs sub">@tutor.Courses</div></div>
+                        <span>@Ui.Stars(tutor.AverageRating)</span>
+                    </div>
+                }
+                @if (Model.Count == 0)
+                {
+                    <p class="sm sub">Tutors will appear here once they are approved.</p>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="sec" id="how">
+    <h2 class="c" style="font-size:32px">How it works</h2>
+    <p class="sub c mt1">Four steps from sign-up to your first session.</p>
+    <div class="g4" style="margin-top:36px">
+        @for (var i = 0; i < steps.Length; i++)
+        {
+            <div class="card step"><div class="num">@(i + 1)</div><h3>@steps[i].Item1</h3><p class="sub sm">@steps[i].Item2</p></div>
+        }
+    </div>
+</section>
+
+<section style="background:#fff" id="tutors">
+    <div class="sec">
+        <div class="rowb wrap">
+            <div><h2 style="font-size:32px">Verified tutors</h2><p class="sub mt1">Every tutor is checked against academic transcripts.</p></div>
+            <a class="btn btn-sec" asp-controller="Account" asp-action="Register">Browse all tutors</a>
+        </div>
+        <div class="g3" style="margin-top:30px">
+            @foreach (var tutor in Model)
+            {
+                <div class="card">
+                    <div class="row">@Ui.Avatar(tutor.FullName, 48)<div><div class="b">@tutor.FullName</div><div class="sm sub">@tutor.University</div></div></div>
+                    <div class="rowb" style="margin-top:16px">
+                        <span>@Ui.Badge("✓ Verified", "ok")</span>
+                        <span class="sm">@Ui.Stars(tutor.AverageRating) <span class="sub">(@tutor.ReviewCount)</span></span>
+                    </div>
+                    <div class="sm sub" style="margin-top:10px">@tutor.Courses · @Ui.Money(tutor.HourlyRate)/hr</div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="sec" id="why">
+    <h2 class="c" style="font-size:32px">Why PeerMindAI</h2>
+    <div class="g2" style="margin-top:36px;max-width:820px;margin-left:auto;margin-right:auto">
+        @foreach (var reason in reasons)
+        {
+            <div class="row"><span class="ico ok" style="width:30px;height:30px">@Ui.Icon("check", 16)</span><span class="b">@reason</span></div>
+        }
+    </div>
+    <div class="c" style="margin-top:44px"><a class="btn btn-pri btn-lg" asp-controller="Account" asp-action="Register">Create your account</a></div>
+</section>
+
+<footer class="foot">
+    <div class="in2">
+        <div><partial name="_Brand" /><p class="sm" style="margin-top:12px;max-width:320px">Peer tutoring with verified university students.</p></div>
+        <div><h4>Product</h4><p>Find a tutor</p><p>Bookings</p><p>Reviews</p></div>
+        <div><h4>Course</h4><p>SOFT3111</p><p>Internet and Web Programming</p></div>
+        <div><h4>Project</h4><p>Project #3</p><p>Fall 2026</p></div>
+    </div>
+</footer>

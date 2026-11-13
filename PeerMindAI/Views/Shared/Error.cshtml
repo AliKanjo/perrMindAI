@@ -1,0 +1,17 @@
+@model ErrorViewModel
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = Model.Title;
+}
+<div class="center">
+    <div class="card c" style="max-width:480px;width:100%;padding:40px">
+        <span class="ico bad" style="width:64px;height:64px">@Ui.Icon(Model.StatusCode == 404 ? "search" : "x", 30)</span>
+        <p class="xs sub b" style="margin-top:16px">ERROR @Model.StatusCode</p>
+        <h1 style="font-size:26px;margin-top:4px">@Model.Title</h1>
+        <p class="sub mt1">@Model.Message</p>
+        <div class="row" style="justify-content:center;margin-top:22px">
+            <a class="btn btn-pri" href="/">Go to the home page</a>
+            <button type="button" class="btn btn-sec" onclick="history.back()">Go back</button>
+        </div>
+    </div>
+</div>

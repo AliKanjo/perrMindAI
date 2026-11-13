@@ -1,0 +1,89 @@
+@{
+    // Sidebar of the logged-in area. Each entry: key (matches ViewData["Nav"]), label, icon, link.
+    var role = User.GetRole();
+    var fullName = User.GetFullName();
+    var active = ViewData["Nav"] as string;
+
+    var menu = role switch
+    {
+        Roles.Admin => new[]
+        {
+            ("dashboard", "Dashboard", "home", "/admin"),
+            ("users", "All users", "users", "/admin/users"),
+            ("verification", "Tutor verification", "shield", "/admin/tutor-verification"),
+            ("courses", "Course library", "lib", "/admin/courses")
+        },
+        Roles.Tutor => new[]
+        {
+            ("dashboard", "Dashboard", "home", "/tutor"),
+            ("requests", "Booking requests", "cal", "/tutor/requests"),
+            ("availability", "Availability", "clock", "/tutor/availability"),
+            ("reviews", "Reviews", "star", "/tutor/reviews"),
+            ("tutorprofile", "Tutor profile", "user", "/tutor/profile"),
+            ("verification", "Verification", "shield", "/tutor/verification")
+        },
+        _ => new[]
+        {
+            ("dashboard", "Dashboard", "home", "/student"),
+            ("tutors", "Find a tutor", "search", "/tutors"),
+            ("bookings", "My bookings", "cal", "/bookings"),
+            ("application", "Become a tutor", "shield", "/tutor/verification")
+        }
+    };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <partial name="_Head" />
+</head>
+<body>
+    <div class="shell">
+        <aside class="side">
+            <a href="/"><partial name="_Brand" /></a>
+            @foreach (var (key, label, icon, url) in menu)
+            {
+                <a class="nav @(key == active ? "active" : "")" href="@url">@Ui.Icon(icon)@label</a>
+            }
+            <a class="nav @(active == "notifications" ? "active" : "")" href="/notifications">@Ui.Icon("bell")Notifications</a>
+            <a class="nav @(active == "settings" ? "active" : "")" href="/Account/Profile">@Ui.Icon("cog")Settings</a>
+
+            <div class="me">
+                @Ui.Avatar(fullName, 36)
+                <div class="grow">
+                    <div class="b sm">@fullName</div>
+                    <div class="xs" style="opacity:.6">@(role == Roles.Admin ? "Administrator" : role)</div>
+                </div>
+                <form method="post" action="/Account/Logout">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="linkbtn" title="Log out" aria-label="Log out">@Ui.Icon("logout")</button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="mainw">
+            <header class="top">
+                @if (role == Roles.Student)
+                {
+                    <form class="search" method="get" action="/tutors" role="search">
+                        @Ui.Icon("search")<input name="q" placeholder="Search tutors or courses…" maxlength="100" aria-label="Search tutors">
+                    </form>
+                }
+                else
+                {
+                    <span class="b sub">PeerMind AI · @(role == Roles.Admin ? "Administration" : "Tutor area")</span>
+                }
+                <div class="row">
+                    @await Component.InvokeAsync("NotificationBell")
+                    <a href="/Account/Profile" title="Profile &amp; settings">@Ui.Avatar(fullName, 38)</a>
+                </div>
+            </header>
+            <main class="main">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+    <div id="modals">@await RenderSectionAsync("Modals", required: false)</div>
+    <partial name="_Foot" />
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

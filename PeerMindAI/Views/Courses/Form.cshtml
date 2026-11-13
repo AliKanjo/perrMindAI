@@ -1,0 +1,72 @@
+@model CourseForm
+@{
+    // one view for both "Add course" and "Edit course"
+    var isEdit = Model.CourseId != null;
+    var course = ViewBag.Course as Course;
+    ViewData["Title"] = isEdit ? "Edit course" : "Add course";
+    ViewData["Nav"] = "courses";
+    var action = isEdit ? $"/admin/courses/{Model.CourseId}/edit" : "/admin/courses/create";
+}
+<a class="sm b row mb" style="color:var(--pri)" href="/admin/courses">@Ui.Icon("left") Back to course library</a>
+
+<div class="ph">
+    <div><h1>@(isEdit ? "Edit course" : "Add course")</h1><p>@(isEdit ? "Change the details of this course." : "Add a new course to the library.")</p></div>
+</div>
+
+<div class="g21">
+    <div class="card">
+        <partial name="_FormErrors" />
+        <form method="post" action="@action" novalidate data-validate>
+            @Html.AntiForgeryToken()
+            <div class="g2">
+                <div class="field">
+                    <label asp-for="Code"></label>
+                    <input asp-for="Code" class="in" placeholder="COMP2112" style="text-transform:uppercase">
+                    <span asp-validation-for="Code" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Name"></label>
+                    <input asp-for="Name" class="in" placeholder="e.g. Discrete Mathematics">
+                    <span asp-validation-for="Name" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Department"></label>
+                    <input asp-for="Department" class="in" placeholder="Mathematics">
+                    <span asp-validation-for="Department" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Professor"></label>
+                    <input asp-for="Professor" class="in" placeholder="Prof. A. Yılmaz">
+                    <span asp-validation-for="Professor" class="err"></span>
+                </div>
+            </div>
+            @if (isEdit)
+            {
+                <div class="field">
+                    <label class="row sm" style="font-weight:400"><input asp-for="IsActive"> Active (students and tutors can select this course)</label>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" asp-for="IsActive" value="true">
+            }
+            <div class="row" style="justify-content:flex-end">
+                <a class="btn btn-sec" href="/admin/courses">Cancel</a>
+                <button type="submit" class="btn btn-pri">@(isEdit ? "Save changes" : "Add course")</button>
+            </div>
+        </form>
+    </div>
+
+    @if (course != null)
+    {
+        <div class="card" style="align-self:start">
+            <h3>Usage</h3>
+            <div class="col sm" style="margin-top:10px">
+                <div class="rowb"><span class="sub">Enrolled students</span><b>@course.Students</b></div>
+                <div class="rowb"><span class="sub">Tutors</span><b>@course.Tutors</b></div>
+                <div class="rowb"><span class="sub">Materials</span><b>@course.Materials</b></div>
+                <div><span class="sub">Topics</span><div class="b">@(course.Topics ?? "—")</div></div>
+            </div>
+        </div>
+    }
+</div>

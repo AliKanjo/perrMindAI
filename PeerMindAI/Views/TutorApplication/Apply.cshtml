@@ -1,0 +1,127 @@
+@model TutorApplicationPage
+@{
+    ViewData["Title"] = "Tutor application";
+    ViewData["Nav"] = "application";
+    var existing = Model.Existing;
+    var savedTranscript = existing is { IsEditable: true }
+        ? existing.Documents.FirstOrDefault(d => d.DocumentType == "Transcript")
+        : null;
+    var transcriptRequired = savedTranscript == null;
+}
+<div class="ph">
+    <div><h1>Tutor application</h1><p>Tell us about your academic background. An administrator reviews every application.</p></div>
+</div>
+
+@if (existing?.Status == ApplicationStatus.InfoRequested)
+{
+    <div class="alert alert-info"><b>The reviewer asked for more information:</b> @existing.ReviewerNote</div>
+}
+else if (existing?.Status == ApplicationStatus.Rejected)
+{
+    <div class="alert alert-bad"><b>Your previous application was not approved:</b> @existing.ReviewerNote<br>You can correct it and apply again below.</div>
+}
+
+<div class="g21">
+    <div class="card">
+        <h3>Academic details</h3>
+        <partial name="_FormErrors" />
+
+        <form method="post" action="/tutor/application" enctype="multipart/form-data" novalidate data-validate style="margin-top:14px">
+            @Html.AntiForgeryToken()
+            <div class="g2">
+                <div class="field">
+                    <label asp-for="Form.UniversityId"></label>
+                    <select asp-for="Form.UniversityId" class="sel in" asp-items="@(new SelectList(Model.Universities, "UniversityId", "Name"))">
+                        <option value="">Select your university</option>
+                    </select>
+                    <span asp-validation-for="Form.UniversityId" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Form.Degree"></label>
+                    <select asp-for="Form.Degree" class="sel in">
+                        <option value="">Select your degree</option>
+                        <option>BSc</option>
+                        <option>MSc</option>
+                        <option>PhD</option>
+                    </select>
+                    <span asp-validation-for="Form.Degree" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Form.Major"></label>
+                    <input asp-for="Form.Major" class="in" placeholder="Computer Science">
+                    <span asp-validation-for="Form.Major" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Form.Gpa"></label>
+                    <input asp-for="Form.Gpa" type="number" min="0" max="4" step="0.01" class="in" placeholder="3.70" asp-format="{0:0.00}">
+                    <span asp-validation-for="Form.Gpa" class="err"></span>
+                    <span class="hint">Out of 4.00 · minimum @Model.MinimumGpa.ToString("0.0")</span>
+                </div>
+                <div class="field">
+                    <label asp-for="Form.YearOfStudy"></label>
+                    <select asp-for="Form.YearOfStudy" class="sel in">
+                        <option value="">Select your year</option>
+                        @for (var year = 1; year <= 8; year++)
+                        {
+                            <option value="@year">Year @year</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Form.YearOfStudy" class="err"></span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Courses you can teach</label>
+                <div class="row wrap">
+                    @foreach (var course in Model.Courses)
+                    {
+                        <label class="chip">
+                            <input type="checkbox" name="Form.CourseIds" value="@course.CourseId" checked="@Model.Form.CourseIds.Contains(course.CourseId)"
+                                   data-require-one="Please select at least one course you want to teach.">
+                            @course.Name
+                        </label>
+                    }
+                </div>
+                @if (Model.Courses.Count == 0)
+                {
+                    <span class="hint">No courses are available yet. Please ask an administrator to add courses.</span>
+                }
+                <span class="err" data-valmsg-for="Form.CourseIds" id="courses-error">@Html.ValidationMessage("Form.CourseIds")</span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Form.Bio"></label>
+                <textarea asp-for="Form.Bio" class="in" placeholder="Why are you a good tutor for these courses?"></textarea>
+                <span asp-validation-for="Form.Bio" class="err"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Form.Transcript"></label>
+                @if (savedTranscript != null)
+                {
+                    <span class="hint">Already uploaded: <b>@savedTranscript.FileName</b>. Choose a file only if you want to replace it.</span>
+                }
+                <input asp-for="Form.Transcript" type="file" accept="application/pdf,.pdf" class="in" data-extension=".pdf" data-max-mb="5"
+                       data-val="true" data-val-required="@(transcriptRequired ? "Please upload your official transcript (PDF)." : null)">
+                <span asp-validation-for="Form.Transcript" class="err"></span>
+                <span class="hint">PDF only, up to 5 MB. Stored privately; only administrators can open it.</span>
+            </div>
+
+            <div class="rowb">
+                <a class="btn btn-sec" href="/tutor/verification">Cancel</a>
+                <button type="submit" class="btn btn-pri">Submit application</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card" style="align-self:start">
+        <h3>Requirements</h3>
+        <div class="col" style="margin-top:10px">
+            <div class="row sm">@Ui.Icon("check") University email verified</div>
+            <div class="row sm">@Ui.Icon("check") Minimum GPA @Model.MinimumGpa.ToString("0.0")</div>
+            <div class="row sm">@Ui.Icon("check") Official transcript (PDF)</div>
+            <div class="row sm">@Ui.Icon("check") Completed 2nd year or above</div>
+            <div class="row sm">@Ui.Icon("check") At least one course selected</div>
+        </div>
+    </div>
+</div>

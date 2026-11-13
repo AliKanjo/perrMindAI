@@ -1,0 +1,52 @@
+@model TutorProfileForm
+@{
+    ViewData["Title"] = "Tutor profile";
+    ViewData["Nav"] = "tutorprofile";
+    var fullName = User.GetFullName();
+}
+<div class="ph">
+    <div><h1>Tutor profile</h1><p>Edit the public profile that students see in the search.</p></div>
+</div>
+
+<div class="g2">
+    <div class="card">
+        <h3>Edit</h3>
+        <partial name="_FormErrors" />
+        <form method="post" action="/tutor/profile" novalidate data-validate style="margin-top:14px">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label asp-for="Headline"></label>
+                <input asp-for="Headline" class="in" placeholder="MSc Computer Science · Data Structures TA">
+                <span asp-validation-for="Headline" class="err"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Bio"></label>
+                <textarea asp-for="Bio" class="in" placeholder="Tell students how you teach."></textarea>
+                <span asp-validation-for="Bio" class="err"></span>
+            </div>
+            <div class="field">
+                <label asp-for="HourlyRate"></label>
+                <input asp-for="HourlyRate" type="number" min="0" max="500" step="0.5" class="in" asp-format="{0:0.##}">
+                <span asp-validation-for="HourlyRate" class="err"></span>
+                <span class="hint">In US dollars. Shown to students; payment happens outside the platform.</span>
+            </div>
+            <div class="field">
+                <label class="row sm" style="font-weight:400"><input asp-for="AcceptSameDay"> Accept same-day bookings</label>
+            </div>
+            <button type="submit" class="btn btn-pri">Save profile</button>
+        </form>
+    </div>
+
+    <div class="card" style="background:var(--priS);border-color:#C7C2FB;align-self:start">
+        <div class="rowb mb"><h3>Public preview</h3>@Ui.Badge("Live", "ok")</div>
+        <div class="card">
+            <div class="row">
+                @Ui.Avatar(fullName, 60)
+                <div><h3 style="margin:0">@fullName @Ui.Badge("✓", "ok")</h3><div class="sm sub">Verified tutor</div></div>
+            </div>
+            <p class="sm" style="margin:14px 0">@Model.Headline</p>
+            <p class="sm sub">@Model.Bio</p>
+            <div class="rowb sm" style="margin-top:14px"><span class="sub">Hourly rate</span><b>@Ui.Money(Model.HourlyRate ?? 0)/hr</b></div>
+        </div>
+    </div>
+</div>

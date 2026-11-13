@@ -1,0 +1,89 @@
+@model ProfileForm
+@{
+    ViewData["Title"] = "Profile & settings";
+    ViewData["Nav"] = "settings";
+    var isLearner = Model.Role != Roles.Admin;   // admins have no student profile
+}
+<div class="ph">
+    <div><h1>Profile &amp; settings</h1><p>Personal details, university information and preferences.</p></div>
+</div>
+
+<partial name="_FormErrors" />
+<form asp-action="Profile" method="post" novalidate data-validate>
+    <div class="g21">
+        <div class="col">
+            <div class="card">
+                <h3>Personal details</h3>
+                <div class="row" style="margin:14px 0">@Ui.Avatar(Model.FullName, 64)<div><div class="b">@Model.FullName</div><div class="xs sub">@Model.Role</div></div></div>
+                <div class="g2">
+                    <div class="field">
+                        <label asp-for="FullName"></label>
+                        <input asp-for="FullName" class="in">
+                        <span asp-validation-for="FullName" class="err"></span>
+                    </div>
+                    <div class="field">
+                        <label asp-for="Phone"></label>
+                        <input asp-for="Phone" class="in" placeholder="+90 555 000 0000">
+                        <span asp-validation-for="Phone" class="err"></span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>University email</label>
+                    <input class="in" value="@Model.Email" disabled>
+                    <span class="hint">The e-mail address cannot be changed.</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>University information</h3>
+                <div class="g2" style="margin-top:14px">
+                    <div class="field">
+                        <label asp-for="UniversityId"></label>
+                        <select asp-for="UniversityId" class="sel in" asp-items="@(new SelectList(Model.Universities, "UniversityId", "Name"))">
+                            <option value="">Not set</option>
+                        </select>
+                    </div>
+                    @if (isLearner)
+                    {
+                        <div class="field">
+                            <label asp-for="Department"></label>
+                            <input asp-for="Department" class="in" placeholder="Computer Engineering">
+                            <span asp-validation-for="Department" class="err"></span>
+                        </div>
+                        <div class="field">
+                            <label asp-for="YearOfStudy"></label>
+                            <select asp-for="YearOfStudy" class="sel in">
+                                <option value="">Not set</option>
+                                @for (var year = 1; year <= 8; year++)
+                                {
+                                    <option value="@year">Year @year</option>
+                                }
+                            </select>
+                            <span asp-validation-for="YearOfStudy" class="err"></span>
+                        </div>
+                        <div class="field">
+                            <label asp-for="StudentNumber"></label>
+                            <input asp-for="StudentNumber" class="in" placeholder="2023-48123">
+                            <span asp-validation-for="StudentNumber" class="err"></span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <h3>Preferences</h3>
+                <label class="rowb" style="padding:12px 0;border-bottom:1px solid #EEF1F6"><span class="sm">Email notifications</span><input asp-for="EmailNotifications"></label>
+                <label class="rowb" style="padding:12px 0;border-bottom:1px solid #EEF1F6"><span class="sm">Study reminders</span><input asp-for="StudyReminders"></label>
+                <label class="rowb" style="padding:12px 0;border-bottom:1px solid #EEF1F6"><span class="sm">Tutor message alerts</span><input asp-for="MessageAlerts"></label>
+                <label class="rowb" style="padding:12px 0"><span class="sm">Weekly progress report</span><input asp-for="WeeklyReport"></label>
+            </div>
+            <div class="card">
+                <h3>Save</h3>
+                <p class="sm sub mb">Your changes are stored in the database.</p>
+                <button type="submit" class="btn btn-pri btn-block">Save changes</button>
+            </div>
+        </div>
+    </div>
+</form>

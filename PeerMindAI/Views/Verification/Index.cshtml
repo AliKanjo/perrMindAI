@@ -1,0 +1,157 @@
+@model VerificationPage
+@{
+    ViewData["Title"] = "Tutor verification";
+    ViewData["Nav"] = "verification";
+    var selected = Model.Selected;
+    var canDecide = selected?.Status is ApplicationStatus.Pending or ApplicationStatus.InfoRequested;
+}
+<div class="ph">
+    <div><h1>Tutor verification</h1><p>Review academic evidence and approve or reject applications.</p></div>
+</div>
+
+@if (Model.Pending.Count == 0 && selected == null)
+{
+    <div class="card empty">
+        <span class="ico ok">@Ui.Icon("check", 20)</span>
+        <h3>All caught up</h3>
+        <p class="sm">There are no tutor applications waiting for review.</p>
+    </div>
+}
+else
+{
+    <div class="g12">
+        <div class="card flat" style="align-self:start">
+            @if (Model.Pending.Count == 0)
+            {
+                <p class="sm sub" style="padding:18px">No other applications are waiting.</p>
+            }
+            @foreach (var application in Model.Pending)
+            {
+                <a class="li" style="padding:14px 18px;@(application.ApplicationId == selected?.ApplicationId ? "background:var(--priS)" : "")"
+                   href="/admin/tutor-verification?id=@application.ApplicationId">
+                    @Ui.Avatar(application.ApplicantName, 38)
+                    <div class="grow"><div class="b sm">@application.ApplicantName</div><div class="xs sub">@application.CourseNames</div></div>
+                    @Ui.StatusBadge(application.Status)
+                </a>
+            }
+        </div>
+
+        @if (selected != null)
+        {
+            <div class="card">
+                <div class="rowb">
+                    <div class="row">
+                        @Ui.Avatar(selected.ApplicantName, 52)
+                        <div>
+                            <h3 style="margin:0">@selected.ApplicantName</h3>
+                            <div class="sm sub">@selected.Degree @selected.Major · @(selected.University ?? "University not given") · GPA @selected.Gpa?.ToString("0.00") · Year @selected.YearOfStudy</div>
+                        </div>
+                    </div>
+                    @Ui.StatusBadge(selected.Status)
+                </div>
+                <hr class="hr">
+                <div class="g2">
+                    <div><div class="xs sub">Courses</div><div class="b">@(selected.Courses.Count == 0 ? "—" : selected.CourseNames)</div></div>
+                    <div><div class="xs sub">Email</div><div class="b">@selected.ApplicantEmail</div></div>
+                    <div><div class="xs sub">Submitted</div><div class="b">@(selected.SubmittedAt?.ToString("d MMM yyyy, HH:mm") ?? "—")</div></div>
+                    <div><div class="xs sub">Applicant</div><div><a class="b" style="color:var(--pri)" href="/admin/users/@selected.ApplicantId">Open user profile</a></div></div>
+                </div>
+
+                <h3 style="margin-top:20px">Bio</h3>
+                <p class="sm sub">@(selected.Bio ?? "No bio.")</p>
+
+                @if (!string.IsNullOrEmpty(selected.ReviewerNote))
+                {
+                    <div class="alert alert-info" style="margin-top:14px"><b>Reviewer note:</b> @selected.ReviewerNote</div>
+                }
+
+                <h3 style="margin-top:20px">Transcript</h3>
+                @if (selected.Documents.Count == 0)
+                {
+                    <p class="sm sub mt1">No document was uploaded.</p>
+                }
+                @foreach (var document in selected.Documents)
+                {
+                    <div class="card row" style="margin-top:8px;background:#F8FAFC">
+                        @Ui.Icon("file", 28)
+                        <div class="grow">
+                            <div class="sm b">@document.FileName</div>
+                            <div class="xs sub">@document.DocumentType · @((document.FileSizeBytes / 1024.0).ToString("0")) KB</div>
+                        </div>
+                        @if (Model.DocumentsOnDisk.Contains(document.DocumentId))
+                        {
+                            <a class="btn btn-sec btn-sm" href="/admin/tutor-verification/documents/@document.DocumentId" target="_blank" rel="noopener">Open PDF</a>
+                        }
+                        else
+                        {
+                            <span class="xs sub" title="The seed data only contains the file name, not the file itself.">Sample record – no file stored</span>
+                        }
+                    </div>
+                }
+
+                @if (canDecide)
+                {
+                    <div class="row wrap" style="margin-top:20px">
+                        <form method="post" action="/admin/tutor-verification/@selected.ApplicationId/approve" data-confirm="Approve @selected.ApplicantName as a tutor?">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-okb">@Ui.Icon("check") Approve</button>
+                        </form>
+                        <button type="button" class="btn btn-bad" data-modal="reject-modal">Reject</button>
+                        @if (selected.Status == ApplicationStatus.Pending)
+                        {
+                            <button type="button" class="btn btn-sec" data-modal="info-modal">Request more info</button>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="sm sub" style="margin-top:20px">This application was already decided@(selected.ReviewedAt == null ? "" : " on " + selected.ReviewedAt.Value.ToString("d MMM yyyy")).</p>
+                }
+            </div>
+        }
+    </div>
+}
+
+@section Modals {
+    @if (selected != null && canDecide)
+    {
+        <div class="modal" id="reject-modal">
+            <div class="mbox">
+                <h2>Reject this application?</h2>
+                <p class="sub mt1 mb">@selected.ApplicantName will see your reason and can apply again.</p>
+                <form method="post" action="/admin/tutor-verification/@selected.ApplicationId/reject" novalidate data-validate>
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label for="reject-note">Reason for rejection</label>
+                        <textarea class="in" id="reject-note" name="Note" maxlength="1000" placeholder="Explain what needs to be fixed…"
+                                  data-val="true" data-val-required="Please give a reason for the rejection."
+                                  data-val-length="The note can have at most 1000 characters." data-val-length-max="1000"></textarea>
+                    </div>
+                    <div class="row" style="justify-content:flex-end">
+                        <button type="button" class="btn btn-sec" data-close>Cancel</button>
+                        <button type="submit" class="btn btn-bad">Reject application</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="modal" id="info-modal">
+            <div class="mbox">
+                <h2>Request more information</h2>
+                <p class="sub mt1 mb">The applicant can update the application and submit it again.</p>
+                <form method="post" action="/admin/tutor-verification/@selected.ApplicationId/request-info" novalidate data-validate>
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label for="info-note">What is missing?</label>
+                        <textarea class="in" id="info-note" name="Note" maxlength="1000" placeholder="e.g. Please upload a clearer transcript."
+                                  data-val="true" data-val-required="Please write what information is missing."
+                                  data-val-length="The note can have at most 1000 characters." data-val-length-max="1000"></textarea>
+                    </div>
+                    <div class="row" style="justify-content:flex-end">
+                        <button type="button" class="btn btn-sec" data-close>Cancel</button>
+                        <button type="submit" class="btn btn-pri">Send request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+}

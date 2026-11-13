@@ -1,0 +1,83 @@
+@model TutorApplication?
+@{
+    ViewData["Title"] = "Verification status";
+    ViewData["Nav"] = User.IsInRole(Roles.Tutor) ? "verification" : "application";
+}
+<div class="ph">
+    <div><h1>Verification status</h1><p>Track your tutor application.</p></div>
+</div>
+
+@if (Model == null)
+{
+    <div class="card" style="padding:36px">
+        <div class="row">
+            <span class="ico" style="width:56px;height:56px">@Ui.Icon("shield", 26)</span>
+            <div><h2>Become a peer tutor</h2><p class="sub">You have not applied yet. Share what you know and help other students.</p></div>
+        </div>
+        <a class="btn btn-pri" style="margin-top:20px" href="/tutor/application">Start application</a>
+    </div>
+}
+else if (Model.Status == ApplicationStatus.Pending)
+{
+    <div class="card" style="padding:36px">
+        <div class="row mb">
+            <span class="ico warn" style="width:56px;height:56px">@Ui.Icon("clock", 26)</span>
+            <div><h2>Application under review</h2><p class="sub">Submitted @Model.SubmittedAt?.ToString("d MMM yyyy, HH:mm") · an administrator will decide soon.</p></div>
+        </div>
+        <div class="pg warn"><i style="width:60%"></i></div>
+        <div class="row mt sm">@Ui.Badge("✓ Submitted", "ok")@Ui.Badge("● In review", "warn")@Ui.Badge("Decision")</div>
+    </div>
+}
+else if (Model.Status == ApplicationStatus.Approved)
+{
+    <div class="card" style="padding:36px">
+        <div class="row">
+            <span class="ico ok" style="width:56px;height:56px">@Ui.Icon("check", 26)</span>
+            <div><h2>You’re verified! 🎉</h2><p class="sub">Your profile is live and students can book you.</p></div>
+        </div>
+        <div class="row mt">
+            <a class="btn btn-pri" href="/tutor/availability">Set availability</a>
+            <a class="btn btn-sec" href="/tutor">Go to dashboard</a>
+        </div>
+    </div>
+}
+else if (Model.Status == ApplicationStatus.Rejected)
+{
+    <div class="card" style="padding:36px">
+        <div class="row">
+            <span class="ico bad" style="width:56px;height:56px">@Ui.Icon("x", 26)</span>
+            <div><h2>Application not approved</h2><p class="sub">Reviewer feedback below.</p></div>
+        </div>
+        <div class="alert alert-bad" style="margin:18px 0"><b>Feedback:</b> @Model.ReviewerNote</div>
+        <a class="btn btn-pri" href="/tutor/application">Update &amp; resubmit</a>
+    </div>
+}
+else
+{
+    @* Draft or InfoRequested: the applicant has to finish the form *@
+    <div class="card" style="padding:36px">
+        <div class="row">
+            <span class="ico blue" style="width:56px;height:56px">@Ui.Icon("file", 26)</span>
+            <div>
+                <h2>@(Model.Status == ApplicationStatus.InfoRequested ? "More information needed" : "Application not submitted yet")</h2>
+                <p class="sub">@(Model.Status == ApplicationStatus.InfoRequested ? Model.ReviewerNote : "Your draft is saved. Complete it and submit it for review.")</p>
+            </div>
+        </div>
+        <a class="btn btn-pri" style="margin-top:20px" href="/tutor/application">Continue application</a>
+    </div>
+}
+
+@if (Model != null)
+{
+    <div class="card mt">
+        <h3>Your application</h3>
+        <div class="g3" style="margin-top:14px">
+            <div><div class="xs sub">Status</div><div>@Ui.StatusBadge(Model.Status)</div></div>
+            <div><div class="xs sub">Degree</div><div class="b">@Model.Degree @Model.Major</div></div>
+            <div><div class="xs sub">University</div><div class="b">@(Model.University ?? "—")</div></div>
+            <div><div class="xs sub">GPA</div><div class="b">@Model.Gpa?.ToString("0.00")</div></div>
+            <div><div class="xs sub">Courses</div><div class="b">@(Model.Courses.Count == 0 ? "—" : Model.CourseNames)</div></div>
+            <div><div class="xs sub">Transcript</div><div class="b">@(Model.Documents.FirstOrDefault()?.FileName ?? "Not uploaded")</div></div>
+        </div>
+    </div>
+}

@@ -1,0 +1,4 @@
+@* Toast message, the anti-forgery token used by fetch() calls, and the shared script *@
+<div id="toast" data-message="@TempData["Toast"]" data-type="@TempData["ToastType"]"></div>
+<form id="antiforgery" class="hide">@Html.AntiForgeryToken()</form>
+<script src="~/js/site.js" asp-append-version="true"></script>

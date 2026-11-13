@@ -1,0 +1,54 @@
+@model LoginForm
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "Log in";
+    ViewData["SideTitle"] = "Welcome back";
+    ViewData["SideText"] = "Log in to find tutors and manage your sessions.";
+}
+<div class="auth">
+    <partial name="_AuthSide" />
+    <div class="authR">
+        <div class="authBox">
+            <h1>Log in</h1>
+            <p class="sub mb">Use your university email to continue.</p>
+
+            <partial name="_FormErrors" />
+            <form asp-action="Login" method="post" novalidate data-validate>
+                <input type="hidden" asp-for="ReturnUrl">
+                <div class="field">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" class="in" placeholder="you@university.edu" autocomplete="username" autofocus>
+                    <span asp-validation-for="Email" class="err"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Password"></label>
+                    <input asp-for="Password" class="in" autocomplete="current-password">
+                    <span asp-validation-for="Password" class="err"></span>
+                </div>
+                <div class="rowb mb">
+                    <label class="row sm"><input asp-for="RememberMe"> Remember me</label>
+                </div>
+                <button type="submit" class="btn btn-pri btn-block btn-lg">Log in</button>
+            </form>
+
+            <p class="sm c" style="margin-top:22px">New here? <a class="b" style="color:var(--pri)" asp-action="Register">Create an account</a></p>
+
+            <hr class="hr">
+            <p class="xs sub c">Demo accounts (password <b>Demo@12345</b>) – click to fill in</p>
+            <div class="row" style="justify-content:center;margin-top:8px">
+                <button type="button" class="btn btn-sec btn-sm" data-demo="aylin.kaya@university.edu">Student</button>
+                <button type="button" class="btn btn-sec btn-sm" data-demo="elif.demir@university.edu">Tutor</button>
+                <button type="button" class="btn btn-sec btn-sm" data-demo="dana@peermind.ai">Admin</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        // fill the form with one of the seeded demo accounts
+        document.querySelectorAll('[data-demo]').forEach(button => button.addEventListener('click', () => {
+            document.getElementById('Email').value = button.dataset.demo;
+            document.getElementById('Password').value = 'Demo@12345';
+        }));
+    </script>
+}

@@ -1,0 +1,113 @@
+@model TutorRequestsPage
+@{
+    ViewData["Title"] = "Booking requests";
+    ViewData["Nav"] = "requests";
+}
+<div class="ph">
+    <div><h1>Booking requests</h1><p>Accept, decline and manage tutoring sessions.</p></div>
+</div>
+
+@* Accept / Decline / Mark completed are sent with fetch() by tutor-requests.js; the row updates in place. *@
+<h3 class="mb">Waiting for your answer</h3>
+<div class="col" id="pending-list">
+    @foreach (var booking in Model.Pending)
+    {
+        <div class="card row wrap" data-booking="@booking.BookingId">
+            @Ui.Avatar(booking.StudentName, 48)
+            <div class="grow">
+                <div class="b">@booking.StudentName</div>
+                <div class="sm sub">@booking.CourseName · @Ui.When(booking.StartAt) · @((int)(booking.EndAt - booking.StartAt).TotalMinutes) min · @Ui.Money(booking.Price)</div>
+                @if (!string.IsNullOrWhiteSpace(booking.Topic) || !string.IsNullOrWhiteSpace(booking.Notes))
+                {
+                    <div class="xs sub" style="margin-top:4px"><b>@booking.Topic</b> @booking.Notes</div>
+                }
+            </div>
+            <span data-status>@Ui.StatusBadge(booking.Status)</span>
+            <span class="row" data-actions>
+                <button type="button" class="btn btn-okb btn-sm" data-respond="true">Accept</button>
+                <button type="button" class="btn btn-sec btn-sm" data-respond="false">Decline</button>
+            </span>
+            <a class="btn btn-ghost btn-sm" href="/bookings/@booking.BookingId">Details</a>
+        </div>
+    }
+</div>
+<div class="card empty @(Model.Pending.Count == 0 ? "" : "hide")" id="pending-empty">
+    <span class="ico ok">@Ui.Icon("check", 20)</span>
+    <h3>No pending requests</h3>
+    <p class="sm">New booking requests from students will appear here.</p>
+</div>
+
+@if (Model.ToComplete.Count > 0)
+{
+    <h3 class="mt mb">Finished sessions to confirm</h3>
+    <div class="col">
+        @foreach (var booking in Model.ToComplete)
+        {
+            <div class="card row wrap" data-booking="@booking.BookingId">
+                @Ui.Avatar(booking.StudentName, 48)
+                <div class="grow">
+                    <div class="b">@booking.StudentName</div>
+                    <div class="sm sub">@booking.CourseName · @Ui.When(booking.StartAt) · @(booking.Topic ?? "No topic")</div>
+                </div>
+                <span data-status>@Ui.StatusBadge(booking.Status)</span>
+                <span class="row" data-actions>
+                    <button type="button" class="btn btn-pri btn-sm" data-complete>Mark as completed</button>
+                </span>
+                <a class="btn btn-ghost btn-sm" href="/bookings/@booking.BookingId">Details</a>
+            </div>
+        }
+    </div>
+}
+
+<div class="card flat mt">
+    <div style="padding:18px 22px"><h3>Upcoming sessions</h3></div>
+    @if (Model.Upcoming.Count == 0)
+    {
+        <p class="sm sub" style="padding:0 22px 20px" id="upcoming-empty">No confirmed sessions yet.</p>
+    }
+    <table>
+        <thead><tr><th>Student</th><th>Course</th><th>When</th><th>Status</th><th></th></tr></thead>
+        <tbody id="upcoming-rows">
+            @foreach (var booking in Model.Upcoming)
+            {
+                <tr>
+                    <td><div class="row">@Ui.Avatar(booking.StudentName, 34)<b>@booking.StudentName</b></div></td>
+                    <td>@booking.CourseName</td>
+                    <td>@Ui.When(booking.StartAt)</td>
+                    <td>@Ui.StatusBadge(booking.Status)</td>
+                    <td><a class="btn btn-sec btn-sm" href="/bookings/@booking.BookingId">Details</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="card flat mt">
+    <div style="padding:18px 22px"><h3>Past sessions</h3></div>
+    @if (Model.Past.Count == 0)
+    {
+        <p class="sm sub" style="padding:0 22px 20px">No past sessions yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Student</th><th>Course</th><th>When</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var booking in Model.Past)
+                {
+                    <tr>
+                        <td><div class="row">@Ui.Avatar(booking.StudentName, 34)<b>@booking.StudentName</b></div></td>
+                        <td>@booking.CourseName</td>
+                        <td>@Ui.When(booking.StartAt)</td>
+                        <td>@Ui.StatusBadge(booking.Status)</td>
+                        <td><a class="btn btn-sec btn-sm" href="/bookings/@booking.BookingId">Details</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/tutor-requests.js" asp-append-version="true"></script>
+}

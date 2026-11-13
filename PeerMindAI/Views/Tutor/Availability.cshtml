@@ -1,0 +1,82 @@
+@model AvailabilityPage
+@{
+    ViewData["Title"] = "Availability";
+    ViewData["Nav"] = "availability";
+    var slotsByDay = Model.Slots.GroupBy(slot => slot.StartAt.Date).ToList();
+}
+<div class="ph">
+    <div><h1>Availability management</h1><p>Add the times when students can book a session with you.</p></div>
+</div>
+
+<div class="g12">
+    <div class="card" style="align-self:start">
+        <h3>Add a time slot</h3>
+        <p class="sub sm mb">Each slot is one bookable session.</p>
+        <partial name="_FormErrors" />
+
+        <form method="post" action="/tutor/availability" novalidate data-validate>
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label asp-for="Form.Date">Date</label>
+                <input asp-for="Form.Date" type="date" class="in" min="@DateTime.Today.ToString("yyyy-MM-dd")" asp-format="{0:yyyy-MM-dd}">
+                <span asp-validation-for="Form.Date" class="err"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.StartTime"></label>
+                <input asp-for="Form.StartTime" type="time" class="in">
+                <span asp-validation-for="Form.StartTime" class="err"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.DurationMinutes"></label>
+                <select asp-for="Form.DurationMinutes" class="sel in">
+                    <option value="30">30 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="90">1.5 hours</option>
+                    <option value="120">2 hours</option>
+                </select>
+                <span asp-validation-for="Form.DurationMinutes" class="err"></span>
+            </div>
+            <button type="submit" class="btn btn-pri btn-block">@Ui.Icon("plus") Add slot</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Your upcoming slots</h3>
+        <p class="sub sm mb">@Model.Slots.Count slot(s) · booked slots cannot be removed until the booking is cancelled or declined.</p>
+
+        @if (Model.Slots.Count == 0)
+        {
+            <div class="empty">
+                <span class="ico">@Ui.Icon("clock", 20)</span>
+                <h3>No availability yet</h3>
+                <p class="sm">Students can only book you after you add at least one time slot.</p>
+            </div>
+        }
+        @foreach (var day in slotsByDay)
+        {
+            <div class="b sm" style="margin:14px 0 4px">@Ui.Day(day.Key)</div>
+            @foreach (var slot in day)
+            {
+                <div class="li" style="padding:10px 0">
+                    <span class="ico @(slot.BookingStatus == null ? "" : "ok")" style="width:34px;height:34px">@Ui.Icon("clock", 16)</span>
+                    <div class="grow">
+                        <div class="b sm">@Ui.TimeRange(slot.StartAt, slot.EndAt)</div>
+                        <div class="xs sub">@(slot.BookingStatus == null ? "Free" : $"{slot.BookingStatus} · {slot.StudentName}")</div>
+                    </div>
+                    @if (slot.BookingStatus == null)
+                    {
+                        @Ui.Badge("Free", "gray")
+                        <form method="post" action="/tutor/availability/@slot.SlotId/remove" data-confirm="Remove this time slot?">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sec btn-sm">Remove</button>
+                        </form>
+                    }
+                    else
+                    {
+                        @Ui.StatusBadge(slot.BookingStatus)
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>

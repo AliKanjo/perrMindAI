@@ -1,0 +1,168 @@
+@model BookingDetailsViewModel
+@{
+    var booking = Model.Booking;
+    ViewData["Title"] = "Booking " + booking.BookingCode;
+    ViewData["Nav"] = Model.ViewerIsTutor ? "requests" : "bookings";
+
+    var backUrl = Model.ViewerIsTutor ? "/tutor/requests" : Model.ViewerIsStudent ? "/bookings" : "/admin";
+    var canCancel = booking.IsActive && (Model.ViewerIsStudent || Model.ViewerIsTutor);
+    var canEditNotes = booking.IsActive && Model.ViewerIsStudent;
+    var canReview = Model.ViewerIsStudent && booking.Status == BookingStatus.Completed && booking.ReviewId == null;
+    var otherPerson = Model.ViewerIsTutor ? booking.StudentName : booking.TutorName;
+}
+<a class="sm b row mb" style="color:var(--pri)" href="@backUrl">@Ui.Icon("left") Back</a>
+
+<div class="ph">
+    <div><h1>Booking details</h1><p>Booking #@booking.BookingCode</p></div>
+    <div class="row wrap">@Ui.StatusBadge(booking.Status)</div>
+</div>
+
+<div class="g21">
+    <div class="col">
+        <div class="card">
+            <h3>Session information</h3>
+            <div class="g2" style="margin-top:14px">
+                <div><div class="xs sub">Course</div><div class="b">@booking.CourseName</div></div>
+                <div><div class="xs sub">Topic</div><div class="b">@(booking.Topic ?? "—")</div></div>
+                <div><div class="xs sub">Date</div><div class="b">@Ui.Day(booking.StartAt)</div></div>
+                <div><div class="xs sub">Time</div><div class="b">@Ui.TimeRange(booking.StartAt, booking.EndAt)</div></div>
+                <div><div class="xs sub">Student</div><div class="b">@booking.StudentName</div></div>
+                <div><div class="xs sub">Price</div><div class="b">@Ui.Money(booking.Price) <span class="xs sub" style="font-weight:400">paid outside the platform</span></div></div>
+            </div>
+            @if (booking.Status == BookingStatus.Cancelled && !string.IsNullOrEmpty(booking.CancellationReason))
+            {
+                <div class="alert alert-bad" style="margin:18px 0 0"><b>Cancellation reason:</b> @booking.CancellationReason</div>
+            }
+        </div>
+
+        <div class="card">
+            <h3>Notes for the tutor</h3>
+            @if (canEditNotes)
+            {
+                <form method="post" action="/bookings/@booking.BookingId/notes" novalidate data-validate style="margin-top:12px">
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label for="Topic">Topic</label>
+                        <input class="in" id="Topic" name="Topic" value="@booking.Topic" maxlength="150"
+                               data-val="true" data-val-length="The topic can have at most 150 characters." data-val-length-max="150">
+                    </div>
+                    <div class="field">
+                        <label for="Notes">Notes</label>
+                        <textarea class="in" id="Notes" name="Notes" maxlength="1000" placeholder="What do you want to focus on?"
+                                  data-val="true" data-val-length="The notes can have at most 1000 characters." data-val-length-max="1000">@booking.Notes</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sec">Save notes</button>
+                </form>
+            }
+            else
+            {
+                <p class="sm sub mt1">@(string.IsNullOrWhiteSpace(booking.Notes) ? "No notes were added." : booking.Notes)</p>
+            }
+        </div>
+
+        @if (booking.Status == BookingStatus.Completed)
+        {
+            <div class="card" id="review">
+                <h3>Review</h3>
+                @if (booking.ReviewId != null)
+                {
+                    <p class="sm mt1"><span style="color:#F59E0B;font-size:18px">@Ui.StarRow(booking.ReviewRating ?? 0)</span> <span class="sub">This session was rated @booking.ReviewRating out of 5.</span></p>
+                }
+                else if (canReview)
+                {
+                    <p class="sm sub mb">How was your session with @booking.TutorName?</p>
+                    <form method="post" action="/bookings/@booking.BookingId/review" novalidate data-validate>
+                        @Html.AntiForgeryToken()
+                        <div class="field">
+                            <label>Rating</label>
+                            <div>
+                                <span class="rating">
+                                    @for (var stars = 5; stars >= 1; stars--)
+                                    {
+                                        <input type="radio" name="Rating" id="rating-@stars" value="@stars" data-val="true" data-val-required="Please choose a rating.">
+                                        <label for="rating-@stars" title="@stars star(s)">★</label>
+                                    }
+                                </span>
+                            </div>
+                            <span class="err" data-valmsg-for="Rating"></span>
+                        </div>
+                        <div class="field">
+                            <label for="Comment">Comment (optional)</label>
+                            <textarea class="in" id="Comment" name="Comment" maxlength="1000" placeholder="What went well? What could be better?"
+                                      data-val="true" data-val-length="The comment can have at most 1000 characters." data-val-length-max="1000"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-pri">Submit review</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="sm sub mt1">The student has not reviewed this session yet.</p>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="col">
+        <div class="card">
+            <h3>@(Model.ViewerIsTutor ? "Student" : "Tutor")</h3>
+            <div class="row" style="margin:12px 0">
+                @Ui.Avatar(otherPerson, 52)
+                <div><div class="b">@otherPerson</div><div class="xs sub">@booking.CourseName</div></div>
+            </div>
+            @if (Model.ViewerIsStudent)
+            {
+                <a class="btn btn-sec btn-block" href="/tutors/@booking.TutorId">View profile</a>
+            }
+        </div>
+
+        @if (canCancel)
+        {
+            <div class="card">
+                <h3>Manage</h3>
+                <button type="button" class="btn btn-bad btn-block" style="margin-top:10px" data-modal="cancel-modal">Cancel session</button>
+                @if (Model.ViewerIsStudent)
+                {
+                    <p class="xs sub" style="margin-top:8px">Confirmed sessions can be cancelled up to @Model.CancellationWindowHours hours before they start.</p>
+                }
+            </div>
+        }
+
+        <div class="card">
+            <h3>History</h3>
+            <div class="timeline" style="margin-top:14px">
+                @foreach (var entry in Model.History)
+                {
+                    <div>
+                        <div class="b sm">@entry.NewStatus <span class="xs sub" style="font-weight:400">· @entry.ChangedAt.ToString("d MMM, HH:mm")</span></div>
+                        <div class="xs sub">@(entry.ChangedBy ?? "System")@(string.IsNullOrEmpty(entry.Note) ? "" : " — " + entry.Note)</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Modals {
+    @if (canCancel)
+    {
+        <div class="modal" id="cancel-modal">
+            <div class="mbox">
+                <h2>Cancel this session?</h2>
+                <p class="sub mt1 mb">@otherPerson will be notified and the time slot becomes free again.</p>
+                <form method="post" action="/bookings/@booking.BookingId/cancel" novalidate data-validate>
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label for="Reason">Reason</label>
+                        <textarea class="in" id="Reason" name="Reason" maxlength="500" placeholder="Tell @Ui.FirstName(otherPerson) why you are cancelling…"
+                                  data-val="true" data-val-required="Please tell the other person why you are cancelling."
+                                  data-val-length="The reason must have 5 to 500 characters." data-val-length-min="5" data-val-length-max="500"></textarea>
+                    </div>
+                    <div class="row" style="justify-content:flex-end">
+                        <button type="button" class="btn btn-sec" data-close>Keep session</button>
+                        <button type="submit" class="btn btn-bad">Yes, cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+}

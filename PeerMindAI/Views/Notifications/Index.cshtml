@@ -1,0 +1,79 @@
+@model List<Notification>
+@{
+    ViewData["Title"] = "Notifications";
+    ViewData["Nav"] = "notifications";
+
+    // icon and colour for each notification type
+    static (string Icon, string Color) Style(string type) => type switch
+    {
+        "Booking" => ("cal", "blue"),
+        "Review" => ("star", "warn"),
+        "Application" => ("shield", ""),
+        "Quiz" => ("check", "ok"),
+        "StudyReminder" => ("clock", "warn"),
+        _ => ("bell", "")
+    };
+
+    // only link to pages that exist in this version of the application
+    static bool IsSupportedLink(string? url) =>
+        url != null && (url.StartsWith("/bookings/") || url.StartsWith("/tutor/") || url.StartsWith("/admin/"));
+}
+<div class="ph">
+    <div><h1>Notifications</h1><p>Booking updates, application decisions and reminders.</p></div>
+    <div class="row wrap">
+        <button type="button" class="btn btn-sec" id="read-all" disabled="@(!Model.Any(n => !n.IsRead))">Mark all as read</button>
+    </div>
+</div>
+
+<div class="card flat">
+    @if (Model.Count == 0)
+    {
+        <div class="empty">
+            <span class="ico">@Ui.Icon("bell", 20)</span>
+            <h3>No notifications yet</h3>
+            <p class="sm">We will let you know when something happens.</p>
+        </div>
+    }
+    @foreach (var notification in Model)
+    {
+        var (icon, color) = Style(notification.Type);
+        <div class="li" style="padding:16px 22px">
+            <span class="ico @color">@Ui.Icon(icon)</span>
+            <div class="grow">
+                <div class="b">@notification.Title</div>
+                <div class="sm sub">@notification.Body</div>
+            </div>
+            <span class="xs sub">@Ui.Ago(notification.CreatedAt)</span>
+            @if (!notification.IsRead)
+            {
+                <span class="unread" title="Unread"></span>
+            }
+            @if (IsSupportedLink(notification.LinkUrl))
+            {
+                <a class="btn btn-sec btn-sm" href="@notification.LinkUrl">Open</a>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // "Mark all as read" without reloading the page
+        (function () {
+            const { $, $$, api, toast } = window.PeerMind;
+            const button = $('#read-all');
+            button.addEventListener('click', async () => {
+                button.disabled = true;
+                try {
+                    const data = await api('/notifications/read-all', { method: 'POST' });
+                    $$('.unread').forEach(dot => dot.remove());
+                    $('#bell-dot')?.remove();
+                    toast(data.message, 'ok');
+                } catch (error) {
+                    button.disabled = false;
+                    toast(error.message, 'bad');
+                }
+            });
+        })();
+    </script>
+}

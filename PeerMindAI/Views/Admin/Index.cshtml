@@ -1,0 +1,52 @@
+@model AdminDashboard
+@{
+    ViewData["Title"] = "Admin dashboard";
+    ViewData["Nav"] = "dashboard";
+}
+<div class="ph">
+    <div><h1>Admin dashboard</h1><p>Platform overview and important activity.</p></div>
+</div>
+
+<div class="g4">
+    <div class="card row"><span class="ico">@Ui.Icon("users", 20)</span><div class="stat"><span class="n">@Model.TotalUsers</span><span class="l">Total users</span></div></div>
+    <div class="card row"><span class="ico warn">@Ui.Icon("shield", 20)</span><div class="stat"><span class="n">@Model.PendingApplications</span><span class="l">Pending tutor reviews</span></div></div>
+    <div class="card row"><span class="ico blue">@Ui.Icon("cal", 20)</span><div class="stat"><span class="n">@Model.SessionsThisMonth</span><span class="l">Sessions this month</span></div></div>
+    <div class="card row"><span class="ico ok">@Ui.Icon("check", 20)</span><div class="stat"><span class="n">@Model.ApprovedTutors</span><span class="l">Approved tutors</span></div></div>
+</div>
+
+<div class="g2 mt">
+    <div class="card">
+        <div class="rowb mb"><h3>Pending verifications</h3><a class="sm b" style="color:var(--pri)" href="/admin/tutor-verification">Review</a></div>
+        @if (Model.Pending.Count == 0)
+        {
+            <p class="sm sub">No applications are waiting for review.</p>
+        }
+        @foreach (var application in Model.Pending)
+        {
+            <a class="li" href="/admin/tutor-verification?id=@application.ApplicationId">
+                @Ui.Avatar(application.ApplicantName, 36)
+                <div class="grow"><div class="b sm">@application.ApplicantName</div><div class="xs sub">@application.CourseNames</div></div>
+                @Ui.StatusBadge(application.Status)
+            </a>
+        }
+    </div>
+
+    <div class="card">
+        <div class="rowb mb"><h3>Recent admin activity</h3><a class="sm b" style="color:var(--pri)" href="/admin/users">Users</a></div>
+        @if (Model.RecentActivity.Count == 0)
+        {
+            <p class="sm sub">No administrator actions were recorded yet.</p>
+        }
+        @foreach (var entry in Model.RecentActivity)
+        {
+            <div class="li">
+                <span class="ico" style="width:34px;height:34px">@Ui.Icon("bell", 16)</span>
+                <div class="grow">
+                    <div class="b sm">@entry.Action</div>
+                    <div class="xs sub">@(entry.AdminName ?? "System")@(string.IsNullOrEmpty(entry.Details) ? "" : " · " + entry.Details)</div>
+                </div>
+                <span class="xs sub">@Ui.Ago(entry.CreatedAt)</span>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,67 @@
+@model ReviewsPage
+@{
+    ViewData["Title"] = "Reviews";
+    ViewData["Nav"] = "reviews";
+    var total = Model.Reviews.Count;
+}
+<div class="ph">
+    <div><h1>Reviews</h1><p>Student feedback and ratings.</p></div>
+</div>
+
+<div class="g12">
+    <div class="card c" style="align-self:start">
+        <div style="font-size:52px;font-weight:800">@Model.Stats.AverageRating.ToString("0.0")</div>
+        <div style="color:#F59E0B;font-size:20px">@Ui.StarRow((int)Math.Round(Model.Stats.AverageRating))</div>
+        <p class="sub sm">@Model.Stats.ReviewCount review(s)</p>
+        <div class="col" style="gap:8px;margin-top:16px;text-align:left">
+            @for (var stars = 5; stars >= 1; stars--)
+            {
+                var percent = total == 0 ? 0 : 100 * Model.Reviews.Count(r => r.Rating == stars) / total;
+                <div class="row sm">
+                    <span style="width:14px">@stars</span>
+                    <div class="pg grow"><i style="width:@percent%"></i></div>
+                    <span class="sub" style="width:38px">@percent%</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Recent reviews</h3>
+        @if (total == 0)
+        {
+            <div class="empty">
+                <span class="ico warn">@Ui.Icon("star", 20)</span>
+                <h3>No reviews yet</h3>
+                <p class="sm">Reviews appear here after students rate a completed session.</p>
+            </div>
+        }
+        @foreach (var review in Model.Reviews)
+        {
+            <div class="li" style="align-items:flex-start">
+                @Ui.Avatar(review.StudentName, 40)
+                <div class="grow">
+                    <div class="b sm">@review.StudentName <span style="color:#F59E0B">@Ui.StarRow(review.Rating)</span> <span class="xs sub" style="font-weight:400">@Ui.Ago(review.CreatedAt)</span></div>
+                    <div class="sm sub">@(review.Comment ?? "No comment.")</div>
+
+                    @if (!string.IsNullOrEmpty(review.TutorReply))
+                    {
+                        <div class="sm" style="margin-top:8px;padding:8px 12px;background:#F8FAFC;border-radius:10px"><b>Your reply:</b> @review.TutorReply</div>
+                    }
+                    <details style="margin-top:8px">
+                        <summary class="sm b" style="color:var(--pri);cursor:pointer">@(string.IsNullOrEmpty(review.TutorReply) ? "Reply" : "Edit reply")</summary>
+                        <form method="post" action="/tutor/reviews/@review.ReviewId/reply" novalidate data-validate style="margin-top:8px">
+                            @Html.AntiForgeryToken()
+                            <div class="field">
+                                <textarea class="in" name="reply" maxlength="1000" placeholder="Thank the student or answer the feedback…" aria-label="Reply"
+                                          data-val="true" data-val-required="Please write a reply."
+                                          data-val-length="The reply can have at most 1000 characters." data-val-length-max="1000">@review.TutorReply</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-pri btn-sm">Publish reply</button>
+                        </form>
+                    </details>
+                </div>
+            </div>
+        }
+    </div>
+</div>
