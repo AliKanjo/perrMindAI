@@ -1,0 +1,6 @@
+bin/
+obj/
+.vs/
+*.user
+# uploaded transcripts are private user data
+PeerMindAI/App_Data/
