@@ -127,6 +127,15 @@
             </div>
         }
 
+        @if (Model.ViewerIsStudent || Model.ViewerIsTutor)
+        {
+            <div class="card">
+                <h3>Something wrong?</h3>
+                <p class="xs sub" style="margin:4px 0 10px">Report a no-show or inappropriate behaviour to the administrators.</p>
+                <button type="button" class="btn btn-sec btn-block" data-modal="report-modal">@Ui.Icon("flag") Report @Ui.FirstName(otherPerson)</button>
+            </div>
+        }
+
         <div class="card">
             <h3>History</h3>
             <div class="timeline" style="margin-top:14px">
@@ -143,6 +152,12 @@
 </div>
 
 @section Modals {
+    @if (Model.ViewerIsStudent || Model.ViewerIsTutor)
+    {
+        ViewData["ReportAction"] = $"/bookings/{booking.BookingId}/report";
+        ViewData["ReportTarget"] = otherPerson;
+        <partial name="_ReportModal" />
+    }
     @if (canCancel)
     {
         <div class="modal" id="cancel-modal">

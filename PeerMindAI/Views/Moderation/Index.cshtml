@@ -1,0 +1,100 @@
+@model ModerationPage
+@{
+    ViewData["Title"] = "Moderation";
+    ViewData["Nav"] = "moderation";
+
+    static (string Text, string Color) DecisionLabel(string status) => status switch
+    {
+        ReportDecision.Dismissed => ("Dismissed", "gray"),
+        ReportDecision.WarningSent => ("Warning sent", "warn"),
+        ReportDecision.UserSuspended => ("User suspended", "bad"),
+        _ => ("Open", "warn")
+    };
+}
+<div class="ph">
+    <div><h1>User reports &amp; moderation</h1><p>Review complaints and record decisions.</p></div>
+    <div class="row wrap">@Ui.Badge(Model.Open.Count + " open", Model.Open.Count == 0 ? "ok" : "warn")</div>
+</div>
+
+@if (Model.Open.Count == 0)
+{
+    <div class="card empty">
+        <span class="ico ok">@Ui.Icon("check", 20)</span>
+        <h3>No open reports</h3>
+        <p class="sm">Reports filed by students and tutors will appear here.</p>
+    </div>
+}
+
+<div class="col">
+    @foreach (var report in Model.Open)
+    {
+        <div class="card">
+            <div class="rowb">
+                <div>
+                    <h3 style="margin:0">@ReportTypes.Label(report.ReportType)</h3>
+                    <p class="sm sub">
+                        Reported by @report.ReporterName
+                        @if (report.ReportedUserName != null)
+                        {
+                            <text>against <b>@report.ReportedUserName</b></text>
+                        }
+                        · @Ui.Ago(report.CreatedAt)
+                    </p>
+                </div>
+                @Ui.Badge("Open", "warn")
+            </div>
+
+            <p class="sm" style="margin:12px 0;background:#F8FAFC;padding:12px;border-radius:10px">@report.Description</p>
+            @if (report.ReportedReviewId != null)
+            {
+                <p class="sm sub" style="margin-bottom:12px"><b>Reported review:</b> “@(report.ReviewComment ?? "(no comment)")” — warning or suspending also hides this review.</p>
+            }
+
+            <form method="post" action="/admin/moderation/@report.ReportId/decide" novalidate data-validate>
+                @Html.AntiForgeryToken()
+                <div class="field">
+                    <label for="note-@report.ReportId">Decision note (optional)</label>
+                    <input class="in" id="note-@report.ReportId" name="Note" maxlength="500" placeholder="Shown to the user in a warning and kept in the decision log"
+                           data-val="true" data-val-length="The note can have at most 500 characters." data-val-length-max="500">
+                </div>
+                <div class="row wrap">
+                    <button type="submit" class="btn btn-sec btn-sm" name="Decision" value="@ReportDecision.Dismissed">Dismiss</button>
+                    @if (report.ReportedUserId != null)
+                    {
+                        <button type="submit" class="btn btn-sec btn-sm" name="Decision" value="@ReportDecision.WarningSent">Warn user</button>
+                        <button type="submit" class="btn btn-bad btn-sm" name="Decision" value="@ReportDecision.UserSuspended"
+                                data-confirm="Suspend @report.ReportedUserName? The account is locked immediately.">Suspend user</button>
+                        <a class="btn btn-ghost btn-sm" href="/admin/users/@report.ReportedUserId">View user</a>
+                    }
+                </div>
+            </form>
+        </div>
+    }
+</div>
+
+<div class="card flat mt">
+    <div style="padding:18px 22px"><h3>Decision log</h3></div>
+    @if (Model.Decided.Count == 0)
+    {
+        <p class="sm sub" style="padding:0 22px 20px">No decisions recorded yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Report</th><th>Against</th><th>Decision</th><th>Note</th><th>Decided</th></tr></thead>
+            <tbody>
+                @foreach (var report in Model.Decided)
+                {
+                    var (text, color) = DecisionLabel(report.Status);
+                    <tr>
+                        <td><b>@ReportTypes.Label(report.ReportType)</b><div class="xs sub">by @report.ReporterName</div></td>
+                        <td>@(report.ReportedUserName ?? "—")</td>
+                        <td>@Ui.Badge(text, color)</td>
+                        <td class="sm sub">@(report.DecisionNote ?? "—")</td>
+                        <td class="sm sub">@(report.DecidedByName ?? "Admin") · @(report.DecidedAt == null ? "" : Ui.Ago(report.DecidedAt.Value))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

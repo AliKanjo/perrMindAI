@@ -61,7 +61,18 @@
                         </form>
                     </details>
                 </div>
+                <button type="button" class="btn btn-ghost btn-sm" data-modal="report-review-@review.ReviewId" title="Report this review to the administrators">@Ui.Icon("flag", 16) Report</button>
             </div>
         }
     </div>
 </div>
+
+@section Modals {
+    @foreach (var review in Model.Reviews)
+    {
+        ViewData["ReportModalId"] = $"report-review-{review.ReviewId}";
+        ViewData["ReportAction"] = $"/tutor/reviews/{review.ReviewId}/report";
+        ViewData["ReportTarget"] = $"the review by {review.StudentName}";
+        <partial name="_ReportModal" />
+    }
+}

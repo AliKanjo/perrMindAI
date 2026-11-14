@@ -32,6 +32,7 @@ PeerMind AI – SOFT3111 Project #3
 | Workflow 2: tutor application and transcript upload | `Controllers/TutorApplicationController.cs`, `Services/TranscriptStorage.cs`, `Views/TutorApplication/` |
 | Admin: dashboard, users, tutor verification | `Controllers/AdminController.cs`, `Controllers/VerificationController.cs`, `Views/Admin/`, `Views/Verification/` |
 | Admin: course library (create, read, update, delete) | `Controllers/CoursesController.cs`, `Data/CourseRepository.cs`, `Views/Courses/` |
+| Admin: reports and moderation | `Controllers/ModerationController.cs`, `Data/ReportRepository.cs`, `Views/Moderation/`, `Views/Shared/_ReportModal.cshtml` |
 | Shared layout, styles, client-side validation, toasts | `Views/Shared/`, `wwwroot/css/site.css`, `wwwroot/js/site.js`, `Helpers/Ui.cs` |
 | Notifications and error pages | `Controllers/NotificationsController.cs`, `Controllers/HomeController.cs`, `Views/Notifications/`, `Views/Shared/Error.cshtml` |
 | Testing and documentation | `README.md` |

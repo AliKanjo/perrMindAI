@@ -11,7 +11,7 @@
     <div class="card row"><span class="ico">@Ui.Icon("users", 20)</span><div class="stat"><span class="n">@Model.TotalUsers</span><span class="l">Total users</span></div></div>
     <div class="card row"><span class="ico warn">@Ui.Icon("shield", 20)</span><div class="stat"><span class="n">@Model.PendingApplications</span><span class="l">Pending tutor reviews</span></div></div>
     <div class="card row"><span class="ico blue">@Ui.Icon("cal", 20)</span><div class="stat"><span class="n">@Model.SessionsThisMonth</span><span class="l">Sessions this month</span></div></div>
-    <div class="card row"><span class="ico ok">@Ui.Icon("check", 20)</span><div class="stat"><span class="n">@Model.ApprovedTutors</span><span class="l">Approved tutors</span></div></div>
+    <a class="card row" href="/admin/moderation"><span class="ico bad">@Ui.Icon("flag", 20)</span><div class="stat"><span class="n">@Model.OpenReports</span><span class="l">Open reports</span></div></a>
 </div>
 
 <div class="g2 mt">

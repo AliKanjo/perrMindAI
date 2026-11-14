@@ -16,12 +16,14 @@ public class BookingsController : BaseController
     private readonly BookingRepository _bookings;
     private readonly TutorRepository _tutors;
     private readonly UserRepository _users;
+    private readonly ReportRepository _reports;
 
-    public BookingsController(BookingRepository bookings, TutorRepository tutors, UserRepository users)
+    public BookingsController(BookingRepository bookings, TutorRepository tutors, UserRepository users, ReportRepository reports)
     {
         _bookings = bookings;
         _tutors = tutors;
         _users = users;
+        _reports = reports;
     }
 
     // ---------- student ----------
@@ -123,6 +125,34 @@ public class BookingsController : BaseController
         }
         return await RunAndReturnAsync(id, "The session was cancelled.",
             () => _bookings.CancelAsync(id, CurrentUserId, form.Reason.Trim()));
+    }
+
+    /// <summary>Reports the other person of this booking (the tutor or the student) to the administrators.</summary>
+    [Authorize(Roles = Roles.Student + "," + Roles.Tutor)]
+    [HttpPost("/bookings/{id:int}/report")]
+    public async Task<IActionResult> Report(int id, ReportForm form)
+    {
+        if (!ReportTypes.IsValid(form.ReportType))
+        {
+            ModelState.AddModelError(nameof(form.ReportType), "Please choose what the problem is.");
+        }
+        if (!ModelState.IsValid)
+        {
+            Toast(ModelErrors(), isError: true);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // only the student and the tutor of the booking can report each other
+        var result = await _bookings.GetAsync(id, CurrentUserId);
+        if (result == null)
+        {
+            return NotFound();
+        }
+        var booking = result.Value.Booking;
+        var otherPersonId = booking.StudentId == CurrentUserId ? booking.TutorId : booking.StudentId;
+
+        return await RunAndReturnAsync(id, "Your report was sent. An administrator will review it.",
+            () => _reports.CreateAsync(CurrentUserId, otherPersonId, reportedReviewId: null, form));
     }
 
     // ---------- tutor (called with fetch, answers in JSON) ----------

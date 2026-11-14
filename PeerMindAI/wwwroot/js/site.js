@@ -196,8 +196,9 @@
             toast('Please correct the highlighted fields.', 'bad');
             return;
         }
-        // forms with data-confirm="question" ask before they are sent (delete, approve ...)
-        if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+        // data-confirm="question" on the form or on the clicked button asks first (delete, suspend ...)
+        const question = event.submitter?.dataset.confirm || form.dataset.confirm;
+        if (question && !window.confirm(question)) {
             event.preventDefault();
             return;
         }

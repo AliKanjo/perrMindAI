@@ -1,0 +1,33 @@
+@* "Report a problem" dialog. ViewData: ReportAction (form URL), ReportTarget (who or what is reported), ReportModalId *@
+@{
+    var modalId = ViewData["ReportModalId"] as string ?? "report-modal";
+}
+<div class="modal" id="@modalId">
+    <div class="mbox">
+        <h2>Report a problem</h2>
+        <p class="sub mt1 mb">Tell the administrators what happened with @ViewData["ReportTarget"]. They review every report.</p>
+        <form method="post" action="@ViewData["ReportAction"]" novalidate data-validate>
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label for="@modalId-type">What is the problem?</label>
+                <select class="sel in" id="@modalId-type" name="ReportType" data-val="true" data-val-required="Please choose what the problem is.">
+                    <option value="">Choose…</option>
+                    @foreach (var (value, label) in ReportTypes.All)
+                    {
+                        <option value="@value">@label</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="@modalId-description">Description</label>
+                <textarea class="in" id="@modalId-description" name="Description" maxlength="1000" placeholder="Describe what happened…"
+                          data-val="true" data-val-required="Please describe what happened."
+                          data-val-length="The description must have 10 to 1000 characters." data-val-length-min="10" data-val-length-max="1000"></textarea>
+            </div>
+            <div class="row" style="justify-content:flex-end">
+                <button type="button" class="btn btn-sec" data-close>Cancel</button>
+                <button type="submit" class="btn btn-bad">Send report</button>
+            </div>
+        </form>
+    </div>
+</div>

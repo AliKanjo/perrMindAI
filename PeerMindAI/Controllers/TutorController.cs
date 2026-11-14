@@ -12,11 +12,13 @@ public class TutorController : BaseController
 {
     private readonly TutorRepository _tutors;
     private readonly BookingRepository _bookings;
+    private readonly ReportRepository _reports;
 
-    public TutorController(TutorRepository tutors, BookingRepository bookings)
+    public TutorController(TutorRepository tutors, BookingRepository bookings, ReportRepository reports)
     {
         _tutors = tutors;
         _bookings = bookings;
+        _reports = reports;
     }
 
     [HttpGet("/tutor")]
@@ -114,6 +116,37 @@ public class TutorController : BaseController
         {
             await _tutors.ReplyToReviewAsync(reviewId, CurrentUserId, reply);
             Toast("Your reply was published.");
+        }
+        catch (DbRuleException ex)
+        {
+            Toast(ex.Message, isError: true);
+        }
+        return RedirectToAction(nameof(Reviews));
+    }
+
+    /// <summary>Reports one of the tutor's reviews (and its author) to the administrators.</summary>
+    [HttpPost("/tutor/reviews/{reviewId:int}/report")]
+    public async Task<IActionResult> ReportReview(int reviewId, ReportForm form)
+    {
+        if (!ReportTypes.IsValid(form.ReportType))
+        {
+            ModelState.AddModelError(nameof(form.ReportType), "Please choose what the problem is.");
+        }
+        if (!ModelState.IsValid)
+        {
+            Toast(ModelErrors(), isError: true);
+            return RedirectToAction(nameof(Reviews));
+        }
+
+        var authorId = await _reports.GetReviewAuthorAsync(reviewId, CurrentUserId);
+        if (authorId == null)
+        {
+            return NotFound();
+        }
+        try
+        {
+            await _reports.CreateAsync(CurrentUserId, authorId.Value, reviewId, form);
+            Toast("Your report was sent. An administrator will review it.");
         }
         catch (DbRuleException ex)
         {

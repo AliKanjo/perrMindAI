@@ -16,6 +16,7 @@ builder.Services.AddSingleton<CourseRepository>();
 builder.Services.AddSingleton<TutorRepository>();
 builder.Services.AddSingleton<BookingRepository>();
 builder.Services.AddSingleton<ApplicationRepository>();
+builder.Services.AddSingleton<ReportRepository>();
 builder.Services.AddSingleton<TranscriptStorage>();
 builder.Services.AddScoped<SessionUserValidator>();
 

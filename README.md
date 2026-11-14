@@ -38,6 +38,7 @@ Two students can never book the same slot: the database enforces it with a uniqu
 - **Accounts:** registration restricted to university e-mail domains, e-mail verification step, log-in and log-out, lock-out after five failed log-ins, profile and settings page.
 - **Course library (admin):** create, list, search, edit and delete courses. A course that is in use is deactivated instead of deleted.
 - **User management (admin):** search and filter users, suspend or re-activate an account, delete an account that has no activity.
+- **Reports and moderation:** a student or tutor can report the other person of a booking, and a tutor can report a review. The administrator dismisses the report, warns the user or suspends the user; warning or suspending also hides a reported review and recalculates the tutor's rating. Every decision appears in a decision log.
 - **Tutor area:** dashboard, availability (add and remove time slots), reviews with replies, public profile editor.
 - **Notifications:** created by the database for bookings, reviews and application decisions; "mark all as read" uses Fetch.
 
@@ -62,7 +63,7 @@ database/                 SQL scripts that create the database
   99_reset_database.sql     removes everything (to start again)
 docs/                     Project #1 proposal and Project #2 prototype
 PeerMindAI/               the ASP.NET Core MVC application
-  Controllers/              one controller per area (Account, Tutors, Bookings, Tutor, Admin, ...)
+  Controllers/              one controller per area (Account, Tutors, Bookings, Tutor, Admin, Moderation, ...)
   Models/                   entities and form models with validation attributes
   Data/                     database access: one repository class per area
   Services/                 log-in session check and private file storage
@@ -142,6 +143,7 @@ These are sample accounts from `03_seed_data.sql`; there are no real passwords o
 2. **Tutor** – open *Booking requests*, accept the new request, and mark yesterday's session as completed.
 3. **Register** a new account with an e-mail such as `you@isikun.edu.tr` (a Gmail address is rejected), verify it, and submit a tutor application with any PDF.
 4. **Admin** – approve the application under *Tutor verification*, then add, edit and delete a course in the *Course library*.
+5. **Admin** – open *Moderation* and decide the open reports, for example suspend the author of the spam review and see the review disappear from the tutor's profile.
 
 ## Validation and error handling
 
