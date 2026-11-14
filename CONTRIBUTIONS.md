@@ -2,14 +2,19 @@
 
 PeerMind AI – SOFT3111 Project #3
 
-> **To complete before submission:** write under each name what that member implemented.
+> **To complete before submission:** Ammar and Kenan, write under your name what you implemented.
 > The list of work areas below covers everything in the project and can be used to divide it.
 
 ## Group members
 
 ### Ali Kanjo – 23COMP1065
 
-- _to be completed_
+- **Database design:** the relational schema in `database/01_schema.sql` (40 tables with keys, check constraints and indexes), including the unique generated column on `bookings` that prevents two active bookings on the same time slot.
+- **Stored procedures and seed data:** the views, triggers and stored procedures in `database/02_procedures.sql` that hold the business rules (booking, cancellation window, reviews, tutor rating), and the demo data in `database/03_seed_data.sql`.
+- **Workflow 1 – find and book a tutor:** tutor search with asynchronous filtering (Fetch + JSON), the tutor profile with free time slots, the booking request, "My bookings", booking details with notes, cancellation and review. Main files: `Controllers/TutorsController.cs`, `Controllers/BookingsController.cs`, `Data/TutorRepository.cs`, `Data/BookingRepository.cs`, `Views/Tutors/`, `Views/Bookings/`, `wwwroot/js/tutor-search.js`, `wwwroot/js/booking-form.js`.
+- **Project set-up and scope:** created the GitHub repository and decided which workflows to implement for Project #3 (the AI features of the proposal were left out; reports and moderation were added).
+- **Local environment and testing:** set up the database in XAMPP, imported the scripts, and ran and tested the application locally.
+- **Coordination:** organised the group's documentation and the contribution summary.
 
 ### Ammar Azzan – 22COMP1048
 
