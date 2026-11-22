@@ -22,11 +22,11 @@ PeerMind AI – SOFT3111 Project #3
 
 ### Kenan Aljabi – 21COMP1073
 
-- Admin – course library (CRUD): create, list, search, edit and delete courses; a course that is already in use is deactivated instead of deleted. Main files: Controllers/CoursesController.cs, Data/CourseRepository.cs, Models/CourseModels.cs, Views/Courses/.
-- Notifications: the notification list, the bell with the unread count in the header, and "mark all as read" with Fetch. Main files: Controllers/NotificationsController.cs, ViewComponents/NotificationBellViewComponent.cs, Views/Notifications/, Views/Shared/Components/NotificationBell/.
-- Error and status pages: the custom error page and the pages for status codes such as 404 and access denied. Main files: Controllers/HomeController.cs, Views/Shared/Error.cshtml.
-- Tutor area – availability: the page where a tutor adds and removes free time slots, with validation of the form. Main files: Controllers/TutorController.cs, Views/Tutor/Availability.cshtml.
-- Tutor area – public profile editor: the page where a tutor edits the public profile that students see. Main files: Controllers/TutorController.cs, Views/Tutor/Profile.cshtml, Models/TutorModels.cs.
+- Admin – course library (CRUD): create, list, search, edit and delete courses; a course that is already in use is deactivated instead of deleted. Main files: `Controllers/CoursesController.cs`, `Data/CourseRepository.cs`, `Models/CourseModels.cs`, `Views/Courses/`.
+- Notifications: the notification list, the bell with the unread count in the header, and "mark all as read" with Fetch. Main files: `Controllers/NotificationsController.cs`, `ViewComponents/NotificationBellViewComponent.cs`, `Views/Notifications/`, `Views/Shared/Components/NotificationBell/`.
+- Error and status pages: the custom error page and the pages for status codes such as 404 and access denied. Main files: `Controllers/HomeController.cs`, `Views/Shared/Error.cshtml`.
+- Tutor area – availability: the page where a tutor adds and removes free time slots, with validation of the form. Main files: `Controllers/TutorController.cs`, `Views/Tutor/Availability.cshtml`.
+- Tutor area – public profile editor: the page where a tutor edits the public profile that students see. Main files: `Controllers/TutorController.cs`, `Views/Tutor/Profile.cshtml`, `Models/TutorModels.cs`.
 - Testing: tested the areas above with the demo accounts, including the error cases (invalid form, duplicate course code, deleting a course that is in use, overlapping time slots).
 
 ## Work areas in this project
