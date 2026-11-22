@@ -18,7 +18,12 @@ PeerMind AI – SOFT3111 Project #3
 
 ### Ammar Azzan – 22COMP1048
 
-- _to be completed_
+- **Accounts – registration and log-in:** the registration form (restricted to university e-mail domains), the simulated e-mail verification page, log-in and log-out with a "remember me" option, and the lock-out after five failed log-ins. Main files: `Controllers/AccountController.cs`, `Services/SessionUserValidator.cs`, `Views/Account/Login.cshtml`, `Register.cshtml`, `VerifyEmail.cshtml`.
+- **Profile and settings page:** the page where a user edits their name, phone, university, department and year of study, and turns notification preferences on or off. Main files: `Controllers/AccountController.cs`, `Views/Account/Profile.cshtml`, `Models/AccountModels.cs`.
+- **Workflow 2 – tutor application:** the form where a student applies to become a tutor (degree, major, GPA, year of study, bio, courses to teach), with the rules for minimum GPA and minimum year, saving drafts, and re-submitting after a "more information" request. Main files: `Controllers/TutorApplicationController.cs`, `Models/ApplicationModels.cs`, `Views/TutorApplication/Apply.cshtml`.
+- **Application status page and transcript upload:** the page that shows whether an application is pending, approved or rejected, and the PDF upload that checks the file type, the 5 MB size limit and the real PDF header, then stores the file in a private folder. Main files: `Services/TranscriptStorage.cs`, `Views/TutorApplication/Status.cshtml`.
+- **Admin – dashboard and user management:** the admin dashboard and the user list with search and filters (role and status), the user details page, suspending or re-activating an account, and deleting an account that has no activity. Main files: `Controllers/AdminController.cs`, `Views/Admin/`.
+- **Admin – reports and moderation:** the moderation page where the administrator dismisses a report, warns the user or suspends the user, the decision log, and the report pop-up that students and tutors use to send a report. Main files: `Controllers/ModerationController.cs`, `Data/ReportRepository.cs`, `Views/Moderation/Index.cshtml`, `Views/Shared/_ReportModal.cshtml`.
 
 ### Kenan Aljabi – 21COMP1073
 
