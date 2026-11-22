@@ -2,9 +2,6 @@
 
 PeerMind AI – SOFT3111 Project #3
 
-> **To complete before submission:** Ammar and Kenan, write under your name what you implemented.
-> The list of work areas below covers everything in the project and can be used to divide it.
-
 ## Group members
 
 ### Ali Kanjo – 23COMP1065
