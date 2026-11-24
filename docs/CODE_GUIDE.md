@@ -25,13 +25,13 @@ Tables                database/01_schema.sql         constraints are the last li
 
 When a rule is broken, the procedure raises an error with `SIGNAL SQLSTATE '45000'` and a message written for the user (for example "This time slot is no longer available"). `Database.cs` turns that error into a `DbRuleException`, and the controller shows its message on the page.
 
-The owner of each section comes from [CONTRIBUTIONS.md](../CONTRIBUTIONS.md). Sections marked **Not assigned** are not claimed by anyone yet; see the end of this guide.
+The owner of each section comes from [CONTRIBUTIONS.md](../CONTRIBUTIONS.md).
 
 ---
 
 ## Part 1 – Shared foundation (used by every feature)
 
-**Owner: Not assigned** (except the database scripts, owned by Ali Kanjo)
+**Owner: Kenan Aljabi** (the database scripts themselves are Ali Kanjo's, see Part 2)
 
 | File | What it does |
 |---|---|
@@ -133,7 +133,7 @@ Things to be able to explain:
 
 ## Part 4 – Tutor side of the booking workflow
 
-**Owner: Not assigned** (it completes Workflow 1)
+**Owner: Ali Kanjo** (it completes Workflow 1)
 
 | Action | Where |
 |---|---|
@@ -180,7 +180,7 @@ Form models with their validation rules: `Models/AccountModels.cs` (`LoginForm`,
 
 ### 6.2 The admin decision
 
-**Owner: Not assigned** (it completes Workflow 2)
+**Owner: Ammar Azzan** (it completes Workflow 2)
 
 | Action | Where |
 |---|---|
@@ -251,22 +251,9 @@ One view serves both create and edit: `Views/Courses/Form.cshtml`. Validation ru
 
 ## Part 11 – Other pages
 
-**Owner: Not assigned**
+**Owner: Kenan Aljabi**
 
 | Page | Where |
 |---|---|
 | Landing page (top tutors from the database) | `HomeController.Index` → `Views/Home/Index.cshtml` |
 | Student dashboard | `StudentController.Index` → `Views/Student/Index.cshtml` |
-
----
-
-## Areas nobody has claimed yet
-
-Every file is somebody's responsibility, so these should be added to someone's section in `CONTRIBUTIONS.md`:
-
-| Area | Files | Natural owner |
-|---|---|---|
-| Shared foundation | `Program.cs`, `Data/Database.cs`, `Data/DbRuleException.cs`, `Data/ReaderExtensions.cs`, `Controllers/BaseController.cs`, `Helpers/`, `Views/Shared/_Layout.cshtml`, `_PublicLayout.cshtml`, `wwwroot/js/site.js`, `wwwroot/css/site.css` | anyone; split between members if you like |
-| Tutor side of booking (Part 4) | `TutorController.Index`, `Requests`, `Reviews`, `Reply`; `BookingsController.Respond`, `Complete`; `Views/Tutor/Index.cshtml`, `Requests.cshtml`, `Reviews.cshtml`; `wwwroot/js/tutor-requests.js` | Ali (owner of Workflow 1) |
-| Admin decision on applications (Part 6.2) | `Controllers/VerificationController.cs`, `Views/Verification/Index.cshtml`, the approve/reject methods of `ApplicationRepository` | Ammar (owner of Workflow 2) |
-| Other pages (Part 11) | `HomeController.Index`, `StudentController`, `Views/Home/`, `Views/Student/` | anyone |
