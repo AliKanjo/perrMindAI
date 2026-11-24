@@ -55,13 +55,15 @@ The AI features of the proposal (roadmap, study assistant, quiz generation) are 
 
 ## Project structure
 
+[docs/CODE_GUIDE.md](docs/CODE_GUIDE.md) explains, feature by feature, which class and stored procedure handle each action.
+
 ```
 database/                 SQL scripts that create the database
   01_schema.sql             40 tables with keys, constraints and indexes
   02_procedures.sql         views, triggers and stored procedures (business rules)
   03_seed_data.sql          demo data
   99_reset_database.sql     removes everything (to start again)
-docs/                     Project #1 proposal and Project #2 prototype
+docs/                     Project #1 proposal, Project #2 prototype and the code guide
 PeerMindAI/               the ASP.NET Core MVC application
   Controllers/              one controller per area (Account, Tutors, Bookings, Tutor, Admin, Moderation, ...)
   Models/                   entities and form models with validation attributes
