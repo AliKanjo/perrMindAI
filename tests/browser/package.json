@@ -1,0 +1,14 @@
+{
+  "name": "peermindai-browser-tests",
+  "private": true,
+  "description": "Automated browser tests of PeerMind AI (Playwright)",
+  "scripts": {
+    "fake-ai": "node fake-claude.js",
+    "test:workflows": "node workflows.test.js",
+    "test:moderation": "node moderation.test.js",
+    "test:project4": "node project4.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+shots/
+app.log
+# files the tests create
+*.pdf
+*.txt
