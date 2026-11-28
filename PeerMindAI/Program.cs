@@ -5,6 +5,10 @@ using PeerMindAI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Optional file for each computer's own settings (database password, AI API key).
+// It is listed in .gitignore, so secrets are never committed.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 // MVC, with the anti-forgery token checked on every POST
 builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
@@ -18,6 +22,15 @@ builder.Services.AddSingleton<BookingRepository>();
 builder.Services.AddSingleton<ApplicationRepository>();
 builder.Services.AddSingleton<ReportRepository>();
 builder.Services.AddSingleton<TranscriptStorage>();
+builder.Services.AddSingleton<DemoEmailSender>();
+builder.Services.AddSingleton<MaterialRepository>();
+builder.Services.AddSingleton<AssistantRepository>();
+builder.Services.AddSingleton<MaterialStorage>();
+builder.Services.AddSingleton<PdfTextExtractor>();
+builder.Services.AddScoped<StudyAssistant>();
+
+// AI study assistant: HttpClient for the Claude API (settings in the "AI" configuration section)
+builder.Services.AddHttpClient<ClaudeClient>();
 builder.Services.AddScoped<SessionUserValidator>();
 
 // cookie log-in with roles (Student, Tutor, Admin)
@@ -29,12 +42,30 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.EventsType = typeof(SessionUserValidator);
+        options.Cookie.Name = "PeerMind.Auth";
+        options.Cookie.HttpOnly = true;                            // JavaScript cannot read the log-in cookie
+        options.Cookie.SameSite = SameSiteMode.Lax;                // not sent with forms posted from other sites
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     });
 
 var app = builder.Build();
 
 app.UseExceptionHandler("/Home/Error");
 app.UseStatusCodePagesWithReExecute("/Home/Status/{0}");
+
+// security headers on every response
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";                 // the browser must not guess file types
+    headers["X-Frame-Options"] = "DENY";                           // the site cannot be shown inside another site
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Content-Security-Policy"] =
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
+        "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'";
+    await next();
+});
 
 app.UseStaticFiles();
 app.UseRouting();

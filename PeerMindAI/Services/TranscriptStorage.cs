@@ -6,7 +6,6 @@ namespace PeerMindAI.Services;
 /// </summary>
 public class TranscriptStorage
 {
-    private static readonly byte[] PdfSignature = "%PDF"u8.ToArray();
     private readonly string _rootFolder;
     private readonly long _maxBytes;
 
@@ -37,10 +36,8 @@ public class TranscriptStorage
         }
 
         // the first bytes of every PDF are "%PDF" - this catches renamed files
-        var header = new byte[PdfSignature.Length];
         await using var stream = file.OpenReadStream();
-        var read = await stream.ReadAsync(header);
-        if (read < PdfSignature.Length || !header.SequenceEqual(PdfSignature))
+        if (!await PdfSignature.IsPdfAsync(stream))
         {
             return "The file does not look like a real PDF document.";
         }

@@ -96,6 +96,16 @@
         if (event.key === 'Escape') $$('.modal.open').forEach(modal => modal.classList.remove('open'));
     });
 
+    /* ---------- side menu on small screens ---------- */
+
+    document.addEventListener('click', event => {
+        if (event.target.closest('[data-menu-open]')) document.body.classList.add('menu-open');
+        else if (event.target.closest('[data-menu-close]')) document.body.classList.remove('menu-open');
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') document.body.classList.remove('menu-open');
+    });
+
     /* ---------- client-side form validation ----------
        Forms marked with data-validate are checked before they are sent.
        The rules are the data-val-* attributes that ASP.NET writes from the
@@ -189,10 +199,11 @@
 
     document.addEventListener('submit', event => {
         const form = event.target;
+        // a page script already handled this form itself (for example the AI assistant)
+        if (event.defaultPrevented) return;
+
         if (form.matches('[data-validate]') && !validateForm(form)) {
             event.preventDefault();
-        }
-        if (event.defaultPrevented) {
             toast('Please correct the highlighted fields.', 'bad');
             return;
         }

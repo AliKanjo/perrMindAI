@@ -1,0 +1,134 @@
+@model AssistantPage
+@{
+    ViewData["Title"] = "AI assistant";
+    ViewData["Nav"] = "assistant";
+    var selected = Model.Selected;
+    var canAsk = selected != null && Model.AiConfigured && Model.AiAllowed;
+}
+<div class="ph">
+    <div><h1>AI study assistant</h1><p>Ask questions about your uploaded course materials. Answers point to the pages they come from.</p></div>
+    <div class="row wrap">
+        <button type="button" class="btn btn-pri" data-modal="new-chat-modal">@Ui.Icon("plus") New chat</button>
+    </div>
+</div>
+
+@if (!Model.AiConfigured)
+{
+    <div class="alert alert-info"><b>The AI assistant is not configured on this server.</b> An administrator must add an API key (see the README, section “AI assistant”). You can still upload materials and read earlier chats.</div>
+}
+else if (!Model.AiAllowed)
+{
+    <div class="alert alert-bad">The AI assistant is turned off for your account or for the platform.</div>
+}
+@if (Model.UsableMaterials == 0)
+{
+    <div class="alert alert-info">You have no materials the assistant can use yet. <a class="b" href="/materials">Upload a PDF</a> first.</div>
+}
+
+<div class="g12">
+    <div class="card flat" style="align-self:start">
+        <div style="padding:16px 18px"><h3>Your chats</h3></div>
+        @if (Model.Conversations.Count == 0)
+        {
+            <p class="sm sub" style="padding:0 18px 18px">No chats yet. Start one with “New chat”.</p>
+        }
+        @foreach (var conversation in Model.Conversations)
+        {
+            <a class="li" style="padding:12px 18px;@(conversation.ConversationId == selected?.ConversationId ? "background:var(--priS)" : "")"
+               href="/assistant?c=@conversation.ConversationId">
+                <span class="ico" style="width:34px;height:34px">@Ui.Icon("bot", 16)</span>
+                <div class="grow"><div class="b sm">@conversation.Title</div><div class="xs sub">@(conversation.CourseName ?? "All my materials") · @Ui.Ago(conversation.CreatedAt)</div></div>
+            </a>
+        }
+    </div>
+
+    @if (selected == null)
+    {
+        <div class="card empty">
+            <span class="ico">@Ui.Icon("bot", 20)</span>
+            <h3>Start a conversation</h3>
+            <p class="sm">Create a chat, then ask things like “Explain LIFO vs FIFO”.</p>
+            <button type="button" class="btn btn-pri btn-sm" style="margin-top:14px" data-modal="new-chat-modal">New chat</button>
+        </div>
+    }
+    else
+    {
+        <div class="card" style="display:flex;flex-direction:column;padding:0;min-height:520px">
+            <div class="rowb" style="padding:16px 22px;border-bottom:1px solid var(--bd)">
+                <div><h3 style="margin:0">@selected.Title</h3><div class="xs sub">Searching: @(selected.CourseName ?? "all my materials")</div></div>
+                <form method="post" action="/assistant/@selected.ConversationId/delete" data-confirm="Delete this chat?">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-ghost btn-sm" aria-label="Delete chat">@Ui.Icon("trash", 16) Delete</button>
+                </form>
+            </div>
+
+            <div id="chat" class="col" style="flex:1;overflow:auto;padding:22px;max-height:60vh" aria-live="polite">
+                @if (Model.Messages.Count == 0)
+                {
+                    <div class="bubble ai" id="chat-hello">Hi! Ask me anything about your materials. I will answer only from them and show the pages I used.</div>
+                }
+                @foreach (var message in Model.Messages)
+                {
+                    if (message.Sender == "User")
+                    {
+                        <div class="bubble me">@message.Content</div>
+                    }
+                    else
+                    {
+                        <div class="bubble ai @(message.IsGrounded == false ? "ungrounded" : "")">
+                            <div class="answer-text">@message.Content</div>
+                            @if (!string.IsNullOrEmpty(message.Sources))
+                            {
+                                <div class="sources">@Ui.Icon("file", 14) Sources: @message.Sources</div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <div style="padding:14px;border-top:1px solid var(--bd)">
+                <div class="row wrap" style="margin-bottom:10px">
+                    @foreach (var prompt in new[] { "Explain LIFO vs FIFO", "Summarise Lecture 5", "What is breadth-first search?" })
+                    {
+                        <button type="button" class="chip" data-prompt="@prompt" disabled="@(!canAsk)">@prompt</button>
+                    }
+                </div>
+                <form id="ask-form" class="row" data-conversation="@selected.ConversationId" novalidate>
+                    <input id="question" class="in" maxlength="500" placeholder="Ask about your course…" autocomplete="off" aria-label="Your question" disabled="@(!canAsk)">
+                    <button type="submit" class="btn btn-pri" aria-label="Send" disabled="@(!canAsk)">Ask</button>
+                </form>
+                <p class="xs sub" style="margin-top:8px">@Model.Disclaimer</p>
+            </div>
+        </div>
+    }
+</div>
+
+@section Modals {
+    <div class="modal" id="new-chat-modal">
+        <div class="mbox">
+            <h2>New chat</h2>
+            <p class="sub mt1 mb">Choose which materials the assistant should search.</p>
+            <form method="post" action="/assistant/new">
+                @Html.AntiForgeryToken()
+                <div class="field">
+                    <label for="new-chat-course">Materials</label>
+                    <select class="sel in" id="new-chat-course" name="CourseId">
+                        <option value="">All my materials</option>
+                        @foreach (var course in Model.Courses)
+                        {
+                            <option value="@course.CourseId">@course.Name only</option>
+                        }
+                    </select>
+                </div>
+                <div class="row" style="justify-content:flex-end">
+                    <button type="button" class="btn btn-sec" data-close>Cancel</button>
+                    <button type="submit" class="btn btn-pri">Start chat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/assistant.js" asp-append-version="true"></script>
+}

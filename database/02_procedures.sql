@@ -331,6 +331,81 @@ BEGIN
   COMMIT;
 END$$
 
+-- Change the password of a logged-in user (the app has already checked the
+-- current password). p_password_hash is a bcrypt hash made by the application.
+DROP PROCEDURE IF EXISTS sp_user_set_password$$
+CREATE PROCEDURE sp_user_set_password(IN p_user_id INT, IN p_password_hash VARCHAR(255))
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM users WHERE user_id = p_user_id AND status = 'Active') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
+  END IF;
+  UPDATE users SET password_hash = p_password_hash WHERE user_id = p_user_id;
+END$$
+
+-- Create a password-reset link for an e-mail address. Returns no row when the
+-- address is unknown or the account cannot log in, so the application can show
+-- the same message either way (it never reveals which e-mails are registered).
+DROP PROCEDURE IF EXISTS sp_password_reset_request$$
+CREATE PROCEDURE sp_password_reset_request(IN p_email VARCHAR(255), IN p_token VARCHAR(128))
+BEGIN
+  DECLARE v_user_id INT DEFAULT NULL;
+  DECLARE v_full_name VARCHAR(120);
+
+  SELECT user_id, full_name INTO v_user_id, v_full_name
+  FROM users WHERE email = LOWER(TRIM(p_email)) AND status = 'Active';
+
+  IF v_user_id IS NOT NULL THEN
+    -- an older unused link stops working when a new one is requested
+    UPDATE verification_tokens SET used_at = NOW()
+     WHERE user_id = v_user_id AND purpose = 'PasswordReset' AND used_at IS NULL;
+
+    INSERT INTO verification_tokens (user_id, token, purpose, expires_at)
+    VALUES (v_user_id, p_token, 'PasswordReset', NOW() + INTERVAL 30 MINUTE);
+
+    SELECT v_user_id AS user_id, v_full_name AS full_name, LOWER(TRIM(p_email)) AS email;
+  END IF;
+END$$
+
+-- Check a reset link: returns the e-mail of its account, or nothing when the
+-- link is unknown, already used or expired.
+DROP PROCEDURE IF EXISTS sp_password_reset_check$$
+CREATE PROCEDURE sp_password_reset_check(IN p_token VARCHAR(128))
+BEGIN
+  SELECT u.email
+  FROM verification_tokens t JOIN users u ON u.user_id = t.user_id
+  WHERE t.token = p_token AND t.purpose = 'PasswordReset'
+    AND t.used_at IS NULL AND t.expires_at > NOW() AND u.status = 'Active';
+END$$
+
+-- Set a new password with a reset link. The link works only once, and the
+-- failed log-ins of the account are cleared so a locked user can log in again.
+DROP PROCEDURE IF EXISTS sp_password_reset_complete$$
+CREATE PROCEDURE sp_password_reset_complete(IN p_token VARCHAR(128), IN p_password_hash VARCHAR(255))
+BEGIN
+  DECLARE v_user_id INT DEFAULT NULL;
+  DECLARE v_email VARCHAR(255);
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+
+  START TRANSACTION;
+    SELECT t.user_id, u.email INTO v_user_id, v_email
+    FROM verification_tokens t JOIN users u ON u.user_id = t.user_id
+    WHERE t.token = p_token AND t.purpose = 'PasswordReset'
+      AND t.used_at IS NULL AND t.expires_at > NOW() AND u.status = 'Active'
+    FOR UPDATE;
+
+    IF v_user_id IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This password reset link is invalid or has expired. Please request a new one.';
+    END IF;
+
+    UPDATE users SET password_hash = p_password_hash WHERE user_id = v_user_id;
+    UPDATE verification_tokens SET used_at = NOW() WHERE token = p_token;
+    DELETE FROM login_attempts WHERE email = v_email AND succeeded = 0;
+
+    INSERT INTO notifications (user_id, type, title, body)
+    VALUES (v_user_id, 'System', 'Password changed', 'Your password was reset. If this was not you, contact support.');
+  COMMIT;
+END$$
+
 -- Record a log-in attempt; returns recent failures so the app can lock the account
 DROP PROCEDURE IF EXISTS sp_login_attempt_record$$
 CREATE PROCEDURE sp_login_attempt_record(
@@ -1320,8 +1395,79 @@ BEGIN
 END$$
 
 -- =====================================================================
+-- COURSE MATERIALS  (FR-08, NFR-07)
+-- Flow: sp_material_create (Processing) -> the app extracts the text and
+--       inserts document_chunks -> sp_material_set_processed
+-- =====================================================================
+DROP PROCEDURE IF EXISTS sp_material_create$$
+CREATE PROCEDURE sp_material_create(
+  IN p_student_id INT, IN p_course_id INT, IN p_file_name VARCHAR(260), IN p_storage_path VARCHAR(500),
+  IN p_file_size_bytes BIGINT, OUT p_new_material_id INT)
+BEGIN
+  DECLARE v_max_mb INT DEFAULT IFNULL(CAST(fn_setting('MaxUploadSizeMB') AS UNSIGNED), 50);
+
+  IF NOT EXISTS (SELECT 1 FROM users WHERE user_id = p_student_id AND status = 'Active') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only active users can upload materials.';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM courses WHERE course_id = p_course_id AND is_active = 1) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Please choose an existing course.';
+  END IF;
+  IF p_file_size_bytes > v_max_mb * 1024 * 1024 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The file is larger than the maximum upload size.';
+  END IF;
+
+  INSERT INTO course_materials (uploaded_by, course_id, file_name, storage_path, file_type, file_size_bytes, processing_status)
+  VALUES (p_student_id, p_course_id, p_file_name, p_storage_path, 'PDF', p_file_size_bytes, 'Processing');
+  SET p_new_material_id = LAST_INSERT_ID();
+END$$
+
+-- Record the result of the text extraction: Processed (with page count) or Failed
+DROP PROCEDURE IF EXISTS sp_material_set_processed$$
+CREATE PROCEDURE sp_material_set_processed(IN p_material_id INT, IN p_page_count INT, IN p_succeeded TINYINT)
+BEGIN
+  UPDATE course_materials
+     SET processing_status = IF(p_succeeded = 1, 'Processed', 'Failed'),
+         page_count = p_page_count
+   WHERE material_id = p_material_id;
+END$$
+
+-- DELETE: only the owner can delete a material, and not while a quiz or a
+-- roadmap lesson refers to it. Its text chunks cascade.
+DROP PROCEDURE IF EXISTS sp_material_delete$$
+CREATE PROCEDURE sp_material_delete(IN p_student_id INT, IN p_material_id INT)
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+
+  IF NOT EXISTS (SELECT 1 FROM course_materials WHERE material_id = p_material_id AND uploaded_by = p_student_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Material not found.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM quizzes WHERE material_id = p_material_id)
+     OR EXISTS (SELECT 1 FROM quiz_questions WHERE source_material_id = p_material_id)
+     OR EXISTS (SELECT 1 FROM section_references WHERE material_id = p_material_id) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'This material is used by a quiz or a roadmap lesson. Turn it off as an AI source instead of deleting it.';
+  END IF;
+
+  START TRANSACTION;
+    DELETE FROM study_recommendations WHERE material_id = p_material_id;
+    DELETE FROM course_materials WHERE material_id = p_material_id;   -- chunks and their AI citations cascade
+  COMMIT;
+END$$
+
+-- =====================================================================
 -- AI ASSISTANT  (FR-08, FR-09)
 -- =====================================================================
+-- Start a new chat, optionally limited to the materials of one course
+DROP PROCEDURE IF EXISTS sp_ai_conversation_create$$
+CREATE PROCEDURE sp_ai_conversation_create(IN p_student_id INT, IN p_course_id INT, OUT p_new_conversation_id INT)
+BEGIN
+  IF p_course_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM courses WHERE course_id = p_course_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Please choose an existing course.';
+  END IF;
+  INSERT INTO ai_conversations (student_id, course_id, title) VALUES (p_student_id, p_course_id, 'New chat');
+  SET p_new_conversation_id = LAST_INSERT_ID();
+END$$
+
 DROP PROCEDURE IF EXISTS sp_ai_message_add$$
 CREATE PROCEDURE sp_ai_message_add(
   IN p_conversation_id INT, IN p_student_id INT, IN p_sender VARCHAR(10), IN p_content TEXT,

@@ -26,6 +26,8 @@
         _ => new[]
         {
             ("dashboard", "Dashboard", "home", "/student"),
+            ("assistant", "AI assistant", "bot", "/assistant"),
+            ("materials", "My materials", "upload", "/materials"),
             ("tutors", "Find a tutor", "search", "/tutors"),
             ("bookings", "My bookings", "cal", "/bookings"),
             ("application", "Become a tutor", "shield", "/tutor/verification")
@@ -39,8 +41,11 @@
 </head>
 <body>
     <div class="shell">
-        <aside class="side">
-            <a href="/"><partial name="_Brand" /></a>
+        <aside class="side" id="sidebar">
+            <div class="rowb">
+                <a href="/"><partial name="_Brand" /></a>
+                <button type="button" class="linkbtn menu-close" data-menu-close aria-label="Close menu">@Ui.Icon("x")</button>
+            </div>
             @foreach (var (key, label, icon, url) in menu)
             {
                 <a class="nav @(key == active ? "active" : "")" href="@url">@Ui.Icon(icon)@label</a>
@@ -63,6 +68,7 @@
 
         <div class="mainw">
             <header class="top">
+                <button type="button" class="menu-btn" data-menu-open aria-label="Open menu" aria-controls="sidebar">@Ui.Icon("menu")</button>
                 @if (role == Roles.Student)
                 {
                     <form class="search" method="get" action="/tutors" role="search">
@@ -82,6 +88,7 @@
                 @RenderBody()
             </main>
         </div>
+        <div class="menu-overlay" data-menu-close></div>
     </div>
     <div id="modals">@await RenderSectionAsync("Modals", required: false)</div>
     <partial name="_Foot" />

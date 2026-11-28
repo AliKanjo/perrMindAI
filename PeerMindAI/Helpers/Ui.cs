@@ -43,7 +43,11 @@ public static class Ui
         ["x"] = "M6 6l12 12M18 6L6 18",
         ["lib"] = "M4 4h4v16H4zM10 4h4v16h-4zM16 5.5l3.9-1 3 14.5-3.9 1z",
         ["spark"] = "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z",
-        ["left"] = "M19 12H5m6-6l-6 6 6 6"
+        ["left"] = "M19 12H5m6-6l-6 6 6 6",
+        ["menu"] = "M4 6h16M4 12h16M4 18h16",
+        ["bot"] = "M12 3v3M5 8h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM9 13h.01M15 13h.01",
+        ["send"] = "M22 2L11 13M22 2l-7 20-4-9-9-4z",
+        ["trash"] = "M4 7h16M10 11v6M14 11v6M5 7l1 13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-13M9 7V4h6v3"
     };
 
     public static IHtmlContent Icon(string name, int size = 18)

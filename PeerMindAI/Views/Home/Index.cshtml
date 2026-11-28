@@ -5,15 +5,17 @@
     var steps = new[]
     {
         ("Create your account", "Sign up with your university e-mail address."),
+        ("Ask the AI assistant", "Upload your lecture PDFs and get answers with page references."),
         ("Find a tutor", "Search verified peer tutors by course and rating."),
-        ("Book a session", "Pick a free time slot and send your request."),
-        ("Learn and review", "Meet your tutor, then rate the session.")
+        ("Book a session", "Pick a free time slot, meet your tutor, then rate the session.")
     };
     var reasons = new[]
     {
-        "Verified university tutors only", "Search by course, rating and availability",
+        "Verified university tutors only", "AI answers grounded in your own materials",
+        "Search by course, rating and availability",
         "Book and cancel in seconds", "No double bookings, guaranteed by the database",
-        "Honest reviews after every session", "Privacy-first and university-restricted"
+        "Honest reviews after every session", "Privacy-first: your files are visible only to you",
+        "University-restricted community"
     };
 }
 <div class="pnav">
@@ -28,11 +30,11 @@
 </div>
 
 <section class="hero">
-    <div class="sec" style="display:grid;grid-template-columns:1.1fr 1fr;gap:50px;align-items:center;padding-top:70px;padding-bottom:90px">
+    <div class="sec herogrid">
         <div>
-            <span class="badge b-pri">@Ui.Icon("spark", 14) Peer learning for university students</span>
-            <h1 style="margin-top:18px">Learn faster with <span class="grad">verified</span> peer tutors</h1>
-            <p class="sub" style="font-size:18px;margin:20px 0 28px;max-width:520px">Find a student who already aced your course, book a session in two clicks and get the help you need before the exam.</p>
+            <span class="badge b-pri">@Ui.Icon("spark", 14) AI-powered peer learning</span>
+            <h1 style="margin-top:18px">Learn faster with <span class="grad">AI</span> and verified peer tutors</h1>
+            <p class="sub" style="font-size:18px;margin:20px 0 28px;max-width:520px">Ask an AI assistant about your own lecture notes, and book a student who already aced your course when you need a human.</p>
             <div class="row wrap">
                 <a class="btn btn-pri btn-lg" asp-controller="Account" asp-action="Register">Get started free @Ui.Icon("arrow")</a>
                 <a class="btn btn-sec btn-lg" asp-controller="Account" asp-action="Login">Log in</a>
@@ -61,7 +63,7 @@
 
 <section class="sec" id="how">
     <h2 class="c" style="font-size:32px">How it works</h2>
-    <p class="sub c mt1">Four steps from sign-up to your first session.</p>
+    <p class="sub c mt1">Four steps from sign-up to confidence.</p>
     <div class="g4" style="margin-top:36px">
         @for (var i = 0; i < steps.Length; i++)
         {
@@ -105,9 +107,9 @@
 
 <footer class="foot">
     <div class="in2">
-        <div><partial name="_Brand" /><p class="sm" style="margin-top:12px;max-width:320px">Peer tutoring with verified university students.</p></div>
-        <div><h4>Product</h4><p>Find a tutor</p><p>Bookings</p><p>Reviews</p></div>
-        <div><h4>Course</h4><p>SOFT3111</p><p>Internet and Web Programming</p></div>
-        <div><h4>Project</h4><p>Project #3</p><p>Fall 2026</p></div>
+        <div><partial name="_Brand" /><p class="sm" style="margin-top:12px;max-width:320px">AI study help and peer tutoring with verified university students.</p></div>
+        <div><h4>Get started</h4><p><a href="/Account/Register">Create an account</a></p><p><a href="/Account/Login">Log in</a></p><p><a href="/Account/ForgotPassword">Forgot password</a></p></div>
+        <div><h4>On this page</h4><p><a href="#how">How it works</a></p><p><a href="#tutors">Verified tutors</a></p><p><a href="#why">Why PeerMindAI</a></p></div>
+        <div><h4>About</h4><p>SOFT3111 – Internet and Web Programming</p><p>Fall 2026 group project</p></div>
     </div>
 </footer>

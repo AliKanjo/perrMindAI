@@ -1,0 +1,115 @@
+@model MaterialsPage
+@{
+    ViewData["Title"] = "My materials";
+    ViewData["Nav"] = "materials";
+}
+<div class="ph">
+    <div><h1>My materials</h1><p>Upload your lecture notes and course PDFs. The AI assistant answers questions from them.</p></div>
+    <div class="row wrap"><a class="btn btn-sec" href="/assistant">@Ui.Icon("bot") Open AI assistant</a></div>
+</div>
+
+<div class="g21">
+    <div class="card flat" style="align-self:start">
+        <div style="padding:18px 22px"><h3>Uploaded materials</h3><p class="sm sub">Only you can see these files.</p></div>
+        @if (Model.Materials.Count == 0)
+        {
+            <div class="empty">
+                <span class="ico">@Ui.Icon("upload", 20)</span>
+                <h3>No materials yet</h3>
+                <p class="sm">Upload a PDF on the right to start asking the AI assistant about it.</p>
+            </div>
+        }
+        else
+        {
+            <table>
+                <thead><tr><th>File</th><th>Course</th><th>Status</th><th>AI source</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var material in Model.Materials)
+                    {
+                        <tr>
+                            <td>
+                                <div class="row">
+                                    <span class="ico blue" style="width:34px;height:34px">@Ui.Icon("file", 16)</span>
+                                    <div><b>@material.FileName</b><div class="xs sub">@(material.PageCount ?? 0) page(s) · @((material.FileSizeBytes / 1024.0).ToString("0")) KB · @Ui.Ago(material.UploadedAt)</div></div>
+                                </div>
+                            </td>
+                            <td>@material.CourseName</td>
+                            <td>
+                                @(material.ProcessingStatus switch
+                                {
+                                    "Processed" => Ui.Badge("Ready", "ok"),
+                                    "Failed" => Ui.Badge("No text found", "bad"),
+                                    _ => Ui.Badge(material.ProcessingStatus, "warn")
+                                })
+                            </td>
+                            <td>
+                                @if (material.ProcessingStatus == "Processed")
+                                {
+                                    <label class="row sm" style="font-weight:500">
+                                        <input type="checkbox" data-source-toggle="@material.MaterialId" checked="@material.UseAsAiSource" aria-label="Use @material.FileName as an AI source">
+                                        Use
+                                    </label>
+                                }
+                                else
+                                {
+                                    <span class="xs sub">—</span>
+                                }
+                            </td>
+                            <td>
+                                <form method="post" action="/materials/@material.MaterialId/delete" data-confirm="Delete &quot;@material.FileName&quot;?">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sec btn-sm" title="Delete" aria-label="Delete @material.FileName">@Ui.Icon("trash", 16)</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="card" style="align-self:start">
+        <h3>Upload a PDF</h3>
+        <p class="sm sub mb">The text is read page by page, so answers can point to the right page.</p>
+        <partial name="_FormErrors" />
+        <form method="post" action="/materials" enctype="multipart/form-data" novalidate data-validate>
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label asp-for="Form.CourseId"></label>
+                <select asp-for="Form.CourseId" class="sel in" asp-items="@(new SelectList(Model.Courses, "CourseId", "Name"))">
+                    <option value="">Choose a course</option>
+                </select>
+                <span asp-validation-for="Form.CourseId" class="err"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.File"></label>
+                <input asp-for="Form.File" type="file" accept="application/pdf,.pdf" class="in" data-extension=".pdf" data-max-mb="@Model.MaxSizeMB"
+                       data-val="true" data-val-required="Please choose a PDF file.">
+                <span asp-validation-for="Form.File" class="err"></span>
+                <span class="hint">PDF with selectable text, up to @Model.MaxSizeMB MB. Scanned pages cannot be read.</span>
+            </div>
+            <button type="submit" class="btn btn-pri btn-block">@Ui.Icon("upload") Upload and read</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // switch a material on or off as an AI source without reloading the page
+        (function () {
+            const { $$, api, toast } = window.PeerMind;
+            $$('[data-source-toggle]').forEach(box => box.addEventListener('change', async () => {
+                box.disabled = true;
+                try {
+                    const data = await api(`/materials/${box.dataset.sourceToggle}/source`, { method: 'POST', body: { use: box.checked } });
+                    toast(data.message, 'ok');
+                } catch (error) {
+                    box.checked = !box.checked;   // put it back as it was
+                    toast(error.message, 'bad');
+                } finally {
+                    box.disabled = false;
+                }
+            }));
+        })();
+    </script>
+}

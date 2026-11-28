@@ -4,3 +4,5 @@ obj/
 *.user
 # uploaded transcripts are private user data
 PeerMindAI/App_Data/
+# each computer's own settings and secrets (database password, AI API key)
+PeerMindAI/appsettings.Local.json

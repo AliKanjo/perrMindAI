@@ -87,3 +87,29 @@
         </div>
     </div>
 </form>
+
+@* A separate form: changing the password never saves the profile fields, and the reverse *@
+<div class="card mt" id="change-password" style="max-width:640px">
+    <h3>Change password</h3>
+    <p class="sm sub mb">Enter your current password to choose a new one.</p>
+    <form asp-action="ChangePassword" method="post" novalidate data-validate>
+        <div class="field">
+            <label asp-for="Password!.CurrentPassword"></label>
+            <input asp-for="Password!.CurrentPassword" class="in" autocomplete="current-password" value="">
+            <span asp-validation-for="Password!.CurrentPassword" class="err"></span>
+        </div>
+        <div class="g2" style="gap:12px">
+            <div class="field">
+                <label asp-for="Password!.NewPassword"></label>
+                <input asp-for="Password!.NewPassword" class="in" autocomplete="new-password" placeholder="At least 10 characters" value="">
+                <span asp-validation-for="Password!.NewPassword" class="err"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Password!.ConfirmPassword"></label>
+                <input asp-for="Password!.ConfirmPassword" class="in" autocomplete="new-password" value="">
+                <span asp-validation-for="Password!.ConfirmPassword" class="err"></span>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-sec">@Ui.Icon("lock") Change password</button>
+    </form>
+</div>

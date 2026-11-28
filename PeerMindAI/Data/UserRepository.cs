@@ -135,6 +135,40 @@ public class UserRepository
             Database.In("p_ip", ipAddress),
             Database.In("p_device", device));
 
+    // ---------- passwords ----------
+
+    public Task SetPasswordAsync(int userId, string passwordHash) =>
+        _db.ExecuteProcedureAsync("sp_user_set_password",
+            Database.In("p_user_id", userId),
+            Database.In("p_password_hash", passwordHash));
+
+    /// <summary>
+    /// Creates a reset link for the address. Returns the account (to send the e-mail to),
+    /// or null when the address is unknown; the caller shows the same message in both cases.
+    /// </summary>
+    public async Task<(string FullName, string Email)?> CreatePasswordResetAsync(string email, string token)
+    {
+        var rows = await _db.QueryProcedureAsync("sp_password_reset_request",
+            r => (r.Text("full_name"), r.Text("email")),
+            Database.In("p_email", email),
+            Database.In("p_token", token));
+        return rows.Count == 0 ? null : rows[0];
+    }
+
+    /// <summary>The e-mail of the account a valid reset link belongs to, or null.</summary>
+    public async Task<string?> CheckPasswordResetAsync(string token)
+    {
+        var rows = await _db.QueryProcedureAsync("sp_password_reset_check",
+            r => r.Text("email"), Database.In("p_token", token));
+        return rows.FirstOrDefault();
+    }
+
+    /// <summary>Sets the new password; throws DbRuleException when the link is invalid or expired.</summary>
+    public Task CompletePasswordResetAsync(string token, string passwordHash) =>
+        _db.ExecuteProcedureAsync("sp_password_reset_complete",
+            Database.In("p_token", token),
+            Database.In("p_password_hash", passwordHash));
+
     /// <summary>Creates the token that the verification e-mail would contain.</summary>
     public async Task<string> CreateVerificationTokenAsync(int userId)
     {

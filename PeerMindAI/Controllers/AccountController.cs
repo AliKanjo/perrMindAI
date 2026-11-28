@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using PeerMindAI.Data;
 using PeerMindAI.Helpers;
 using PeerMindAI.Models;
+using PeerMindAI.Services;
 
 namespace PeerMindAI.Controllers;
 
@@ -12,8 +14,13 @@ namespace PeerMindAI.Controllers;
 public class AccountController : BaseController
 {
     private readonly UserRepository _users;
+    private readonly DemoEmailSender _email;
 
-    public AccountController(UserRepository users) => _users = users;
+    public AccountController(UserRepository users, DemoEmailSender email)
+    {
+        _users = users;
+        _email = email;
+    }
 
     // ---------- log in ----------
 
@@ -152,6 +159,107 @@ public class AccountController : BaseController
         return tutor ? Redirect("/tutor/application") : RedirectToAction("Index", "Home");
     }
 
+    // ---------- forgot / reset password ----------
+
+    [HttpGet]
+    public IActionResult ForgotPassword() => View(new ForgotPasswordForm());
+
+    [HttpPost]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordForm form)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(form);
+        }
+
+        var token = Guid.NewGuid().ToString("N");
+        var account = await _users.CreatePasswordResetAsync(form.Email.Trim(), token);
+        if (account != null)
+        {
+            var link = Url.Action(nameof(ResetPassword), "Account", new { token }, Request.Scheme);
+            await _email.SendAsync(account.Value.Email, "Reset your PeerMind AI password",
+                $"Hi {Ui.FirstName(account.Value.FullName)}, open this link within 30 minutes to choose a new password: {link}");
+        }
+
+        // the same answer whether or not the address is registered (no user enumeration)
+        ViewBag.Sent = true;
+        return View(form);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ResetPassword(string? token)
+    {
+        var email = string.IsNullOrEmpty(token) ? null : await _users.CheckPasswordResetAsync(token);
+        if (email == null)
+        {
+            return View("ResetPasswordInvalid");
+        }
+        return View(new ResetPasswordForm { Token = token!, Email = email });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ResetPassword(ResetPasswordForm form)
+    {
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                await _users.CompletePasswordResetAsync(form.Token, BCrypt.Net.BCrypt.HashPassword(form.NewPassword));
+                Toast("Your password was changed. You can log in with the new password now.");
+                return RedirectToAction(nameof(Login));
+            }
+            catch (DbRuleException)
+            {
+                // the link expired or was used while the form was open
+                return View("ResetPasswordInvalid");
+            }
+        }
+
+        form.Email = await _users.CheckPasswordResetAsync(form.Token) ?? "";
+        return form.Email == "" ? View("ResetPasswordInvalid") : View(form);
+    }
+
+    // ---------- change password (logged in) ----------
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> ChangePassword([Bind(Prefix = "Password")] ChangePasswordForm form)
+    {
+        var account = await _users.GetByEmailAsync(User.FindFirstValue(ClaimTypes.Email) ?? "");
+        if (account == null)
+        {
+            return NotFound();
+        }
+
+        if (ModelState.IsValid && !PasswordMatches(form.CurrentPassword, account.PasswordHash))
+        {
+            ModelState.AddModelError("Password.CurrentPassword", "The current password is not correct.");
+        }
+        if (ModelState.IsValid && form.NewPassword == form.CurrentPassword)
+        {
+            ModelState.AddModelError("Password.NewPassword", "The new password must be different from the current one.");
+        }
+
+        if (ModelState.IsValid)
+        {
+            await _users.SetPasswordAsync(account.UserId, BCrypt.Net.BCrypt.HashPassword(form.NewPassword));
+            Toast("Your password was changed.");
+            return RedirectToAction(nameof(Profile));
+        }
+
+        // show the profile page again with the password errors (the typed passwords are not sent back)
+        var user = await _users.GetByIdAsync(account.UserId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+        var preferences = await _users.GetPreferencesAsync(account.UserId);
+        var page = await FillProfilePageAsync(NewProfileForm(user, preferences), user);
+        page.Password = new ChangePasswordForm();
+        Toast("Your password was not changed. Please check the highlighted fields.", isError: true);
+        return View(nameof(Profile), page);
+    }
+
     // ---------- profile & settings ----------
 
     [Authorize]
@@ -164,21 +272,7 @@ public class AccountController : BaseController
             return NotFound();
         }
         var preferences = await _users.GetPreferencesAsync(CurrentUserId);
-
-        var form = new ProfileForm
-        {
-            FullName = user.FullName,
-            Phone = user.Phone,
-            UniversityId = user.UniversityId,
-            Department = user.Department,
-            YearOfStudy = user.YearOfStudy,
-            StudentNumber = user.StudentNumber,
-            EmailNotifications = preferences.EmailNotifications,
-            StudyReminders = preferences.StudyReminders,
-            MessageAlerts = preferences.MessageAlerts,
-            WeeklyReport = preferences.WeeklyReport
-        };
-        return View(await FillProfilePageAsync(form, user));
+        return View(await FillProfilePageAsync(NewProfileForm(user, preferences), user));
     }
 
     [Authorize]
@@ -212,6 +306,20 @@ public class AccountController : BaseController
     }
 
     // ---------- helpers ----------
+
+    private static ProfileForm NewProfileForm(UserProfile user, UserPreferences preferences) => new()
+    {
+        FullName = user.FullName,
+        Phone = user.Phone,
+        UniversityId = user.UniversityId,
+        Department = user.Department,
+        YearOfStudy = user.YearOfStudy,
+        StudentNumber = user.StudentNumber,
+        EmailNotifications = preferences.EmailNotifications,
+        StudyReminders = preferences.StudyReminders,
+        MessageAlerts = preferences.MessageAlerts,
+        WeeklyReport = preferences.WeeklyReport
+    };
 
     private async Task<ProfileForm> FillProfilePageAsync(ProfileForm form, UserProfile user)
     {

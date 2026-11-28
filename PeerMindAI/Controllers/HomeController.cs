@@ -59,6 +59,12 @@ public class HomeController : BaseController
         };
 
         Response.StatusCode = model.StatusCode;
+
+        // a background (fetch) request gets JSON it can show, never an HTML page or technical details
+        if (Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            return Json(new { ok = false, message = model.Message });
+        }
         return View("Error", model);
     }
 

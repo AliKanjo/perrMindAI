@@ -2,6 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PeerMindAI.Models;
 
+/// <summary>The password rules shared by registration, password change and password reset.</summary>
+public static class PasswordRules
+{
+    public const string Pattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$";
+    public const string PatternMessage = "Use upper and lower case letters, a number and a symbol.";
+    public const string LengthMessage = "The password must have at least 10 characters.";
+}
+
 public class LoginForm
 {
     [Required(ErrorMessage = "Please enter your e-mail address.")]
@@ -33,9 +41,8 @@ public class RegisterForm
     public string Email { get; set; } = "";
 
     [Required(ErrorMessage = "Please choose a password.")]
-    [StringLength(100, MinimumLength = 10, ErrorMessage = "The password must have at least 10 characters.")]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$",
-        ErrorMessage = "Use upper and lower case letters, a number and a symbol.")]
+    [StringLength(100, MinimumLength = 10, ErrorMessage = PasswordRules.LengthMessage)]
+    [RegularExpression(PasswordRules.Pattern, ErrorMessage = PasswordRules.PatternMessage)]
     [DataType(DataType.Password)]
     public string Password { get; set; } = "";
 
@@ -55,6 +62,60 @@ public class RegisterForm
     public bool AcceptTerms { get; set; }
 
     public List<University> Universities { get; set; } = new();
+}
+
+/// <summary>"Change password" on the profile page.</summary>
+public class ChangePasswordForm
+{
+    [Required(ErrorMessage = "Please enter your current password.")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Current password")]
+    public string CurrentPassword { get; set; } = "";
+
+    [Required(ErrorMessage = "Please choose a new password.")]
+    [StringLength(100, MinimumLength = 10, ErrorMessage = PasswordRules.LengthMessage)]
+    [RegularExpression(PasswordRules.Pattern, ErrorMessage = PasswordRules.PatternMessage)]
+    [DataType(DataType.Password)]
+    [Display(Name = "New password")]
+    public string NewPassword { get; set; } = "";
+
+    [Required(ErrorMessage = "Please repeat the new password.")]
+    [Compare(nameof(NewPassword), ErrorMessage = "The two passwords do not match.")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Confirm new password")]
+    public string ConfirmPassword { get; set; } = "";
+}
+
+/// <summary>"Forgot password?" – ask for a reset link.</summary>
+public class ForgotPasswordForm
+{
+    [Required(ErrorMessage = "Please enter your e-mail address.")]
+    [EmailAddress(ErrorMessage = "Please enter a valid e-mail address.")]
+    [Display(Name = "University email")]
+    public string Email { get; set; } = "";
+}
+
+/// <summary>The page opened from the reset link.</summary>
+public class ResetPasswordForm
+{
+    [Required]
+    public string Token { get; set; } = "";
+
+    [Required(ErrorMessage = "Please choose a new password.")]
+    [StringLength(100, MinimumLength = 10, ErrorMessage = PasswordRules.LengthMessage)]
+    [RegularExpression(PasswordRules.Pattern, ErrorMessage = PasswordRules.PatternMessage)]
+    [DataType(DataType.Password)]
+    [Display(Name = "New password")]
+    public string NewPassword { get; set; } = "";
+
+    [Required(ErrorMessage = "Please repeat the new password.")]
+    [Compare(nameof(NewPassword), ErrorMessage = "The two passwords do not match.")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Confirm new password")]
+    public string ConfirmPassword { get; set; } = "";
+
+    /// <summary>Shown on the page, never posted back.</summary>
+    public string Email { get; set; } = "";
 }
 
 /// <summary>The "Profile &amp; settings" form.</summary>
@@ -92,6 +153,9 @@ public class ProfileForm
     public string Email { get; set; } = "";
     public string Role { get; set; } = "";
     public List<University> Universities { get; set; } = new();
+
+    /// <summary>The separate "Change password" form on the same page (null unless it was just posted).</summary>
+    public ChangePasswordForm? Password { get; set; }
 }
 
 /// <summary>Student dashboard.</summary>
