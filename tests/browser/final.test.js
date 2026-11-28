@@ -99,7 +99,7 @@ async function makePdf(browser, file, html) {
         await logout(page);
         await login(page, 'dana@peermind.ai');
         await page.goto(BASE + '/admin/ai-usage');
-        check('[Groq] AI usage page shows the Groq provider', (await page.textContent('.ph')).includes('Groq · llama'));
+        check('[Groq] AI usage page shows the Groq provider', (await page.textContent('.ph')).includes('Groq · openai/gpt-oss-120b'));
         finish(); return;
     }
 

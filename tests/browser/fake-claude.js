@@ -62,6 +62,10 @@ http.createServer((req, res) => {
         const system = isAnthropic ? data.system || '' : (data.messages || []).find(m => m.role === 'system')?.content || '';
         const prompt = (data.messages || []).find(m => m.role === 'user')?.content || '';
         if (!data.model || !data.max_tokens || !system || !prompt) return send(400, { error: { message: 'bad body' } });
+        // reasoning models on Groq: the app must keep the thinking short and leave room for it
+        if (isGroq && data.model.includes('gpt-oss') && (data.reasoning_effort !== 'low' || data.max_tokens < 2000)) {
+            return send(400, { error: { message: 'reasoning settings missing' } });
+        }
 
         const question = (prompt.split('Question:').pop() || '').toLowerCase();
         if (question.includes('crash')) return send(500, { error: { message: 'internal' } });

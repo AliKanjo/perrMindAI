@@ -19,7 +19,7 @@ public class AiServiceException : Exception
 /// chosen with the "AI:Provider" setting:
 /// <list type="bullet">
 /// <item><b>Anthropic</b> – Claude, through the Anthropic Messages API (<c>/v1/messages</c>).</item>
-/// <item><b>Groq</b> – open models such as Llama, through Groq's OpenAI-compatible API
+/// <item><b>Groq</b> – open models such as gpt-oss, Qwen or Llama, through Groq's OpenAI-compatible API
 /// (<c>/openai/v1/chat/completions</c>). Groq has a free tier.</item>
 /// </list>
 /// The API key must never be written into appsettings.json (see README, "AI features").
@@ -39,7 +39,7 @@ public class AiClient
 
         // each provider has its own default address and model; both can be changed in the settings
         Model = configuration["AI:Model"] is { Length: > 0 } model ? model
-              : _isGroq ? "llama-3.3-70b-versatile" : "claude-haiku-5-5";
+              : _isGroq ? "openai/gpt-oss-120b" : "claude-haiku-5-5";
         var baseUrl = configuration["AI:BaseUrl"] is { Length: > 0 } url ? url
                     : _isGroq ? "https://api.groq.com" : "https://api.anthropic.com";
         _http.BaseAddress = new Uri(baseUrl);
@@ -145,24 +145,32 @@ public class AiClient
 
     // ---------- Groq (OpenAI-compatible chat completions) ----------
 
+    // Reasoning models (gpt-oss, Qwen 3) think before they answer, and on Groq that thinking counts
+    // toward the token limit, so they get extra room and are asked to keep the thinking short or hidden.
+    private const int ReasoningAllowance = 2000;
+
     private HttpRequestMessage GroqRequest(string systemPrompt, string userMessage, int maxTokens, bool jsonOnly)
     {
-        object body = jsonOnly
-            ? new
-            {
-                model = Model,
-                max_tokens = maxTokens,
-                temperature = 0.3,
-                response_format = new { type = "json_object" },
-                messages = new[] { new { role = "system", content = systemPrompt }, new { role = "user", content = userMessage } }
-            }
-            : new
-            {
-                model = Model,
-                max_tokens = maxTokens,
-                temperature = 0.3,
-                messages = new[] { new { role = "system", content = systemPrompt }, new { role = "user", content = userMessage } }
-            };
+        var model = Model.ToLowerInvariant();
+        var body = new Dictionary<string, object>
+        {
+            ["model"] = Model,
+            ["max_tokens"] = maxTokens + ReasoningAllowance,
+            ["temperature"] = 0.3,
+            ["messages"] = new[] { new { role = "system", content = systemPrompt }, new { role = "user", content = userMessage } }
+        };
+        if (jsonOnly)
+        {
+            body["response_format"] = new { type = "json_object" };
+        }
+        if (model.Contains("gpt-oss"))
+        {
+            body["reasoning_effort"] = "low";
+        }
+        else if (model.Contains("qwen3"))
+        {
+            body["reasoning_format"] = "hidden";
+        }
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/openai/v1/chat/completions") { Content = JsonContent.Create(body) };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
@@ -172,6 +180,12 @@ public class AiClient
     private static (string, int, int) ReadGroqAnswer(JsonElement root)
     {
         var text = root.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
+        // some reasoning models put their thinking in the answer between <think> tags: keep only the answer
+        var thinkEnd = text.LastIndexOf("</think>", StringComparison.Ordinal);
+        if (thinkEnd >= 0)
+        {
+            text = text[(thinkEnd + "</think>".Length)..];
+        }
         var usage = root.GetProperty("usage");
         return (text, usage.GetProperty("prompt_tokens").GetInt32(), usage.GetProperty("completion_tokens").GetInt32());
     }

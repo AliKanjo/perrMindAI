@@ -157,7 +157,7 @@ If your database name, user, password or port is different, do not edit `appsett
 
 ### 3. AI features (optional)
 
-The AI study assistant and the practice quizzes need an API key from **Groq** (free tier available, open models such as Llama) or **Anthropic** (Claude).
+The AI study assistant and the practice quizzes need an API key from **Groq** (free tier available, open models such as gpt-oss and Qwen) or **Anthropic** (Claude).
 
 **Simplest: a `.env` file.** Copy `.env.example` to `.env` (in the repository folder or in the `PeerMindAI` folder) and fill in your key:
 
@@ -195,7 +195,7 @@ With Anthropic (Claude):
 }
 ```
 
-The default models are `llama-3.3-70b-versatile` for Groq and `claude-haiku-5-5` for Anthropic. To use another model, add `"Model": "..."` to the `AI` section; providers retire models over time, so check the provider's model list if a model stops working.
+The default models are `openai/gpt-oss-120b` for Groq and `claude-haiku-5-5` for Anthropic. To use another model, add `"Model": "..."` to the `AI` section; providers retire models over time, so check the provider's model list if a model stops working.
 
 Without a key, everything else works: the AI pages explain that the AI is not configured, and materials can still be uploaded. A student can ask at most 30 questions and generate at most 10 quizzes per hour. Paid providers charge a small amount per request.
 
