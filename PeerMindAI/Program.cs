@@ -1,13 +1,18 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using PeerMindAI.Data;
+using PeerMindAI.Helpers;
 using PeerMindAI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Optional file for each computer's own settings (database password, AI API key).
-// It is listed in .gitignore, so secrets are never committed.
+// Optional files for each computer's own settings (database password, AI API key).
+// Both are listed in .gitignore, so secrets are never committed:
+//  - appsettings.Local.json (same format as appsettings.json)
+//  - .env with lines such as GROQ_API_KEY=... (in the PeerMindAI folder or the repository folder)
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddInMemoryCollection(
+    DotEnvFile.Load(builder.Environment.ContentRootPath, Path.Combine(builder.Environment.ContentRootPath, "..")));
 
 // MVC, with the anti-forgery token checked on every POST
 builder.Services.AddControllersWithViews(options =>

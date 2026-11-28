@@ -157,9 +157,23 @@ If your database name, user, password or port is different, do not edit `appsett
 
 ### 3. AI features (optional)
 
-The AI study assistant and the practice quizzes need an API key from **Groq** or **Anthropic**. Add it to the same `appsettings.Local.json`.
+The AI study assistant and the practice quizzes need an API key from **Groq** (free tier available, open models such as Llama) or **Anthropic** (Claude).
 
-With Groq (free tier available, open models such as Llama):
+**Simplest: a `.env` file.** Copy `.env.example` to `.env` (in the repository folder or in the `PeerMindAI` folder) and fill in your key:
+
+```
+GROQ_API_KEY=gsk_...
+```
+
+or
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+The application reads `.env` when it starts and picks the provider from the key you filled in (set `AI_PROVIDER=Groq` or `AI_PROVIDER=Anthropic` if you fill in both). `.env` can also hold `AI_MODEL` and `DB_CONNECTION` (your database connection string). It is listed in `.gitignore`, so it is never committed.
+
+**Or in `appsettings.Local.json`.** With Groq:
 
 ```json
 {
@@ -185,7 +199,7 @@ The default models are `llama-3.3-70b-versatile` for Groq and `claude-haiku-5-5`
 
 Without a key, everything else works: the AI pages explain that the AI is not configured, and materials can still be uploaded. A student can ask at most 30 questions and generate at most 10 quizzes per hour. Paid providers charge a small amount per request.
 
-Never put the key in `appsettings.json`, and do not include `appsettings.Local.json` in a ZIP you share.
+Never put the key in `appsettings.json`, and do not include `.env` or `appsettings.Local.json` in a ZIP you share.
 
 ### 4. Run the application
 
@@ -233,7 +247,7 @@ These are sample accounts from `03_seed_data.sql`; there are no real passwords o
 
 ## Testing
 
-The test report ([docs/TEST_REPORT.pdf](docs/TEST_REPORT.pdf), source [docs/TEST_REPORT.md](docs/TEST_REPORT.md)) contains 52 test cases covering normal operation, invalid input, exceptional situations, security, speed and browser support. 151 automated browser checks back it, run in both Chromium and Microsoft Edge, plus a speed test (95% of page requests must finish within 2 seconds; measured: 95% within 25 ms). [tests/browser/README.md](tests/browser/README.md) explains how to run them.
+The test report ([docs/TEST_REPORT.pdf](docs/TEST_REPORT.pdf), source [docs/TEST_REPORT.md](docs/TEST_REPORT.md)) contains 53 test cases covering normal operation, invalid input, exceptional situations, security, speed and browser support. 151 automated browser checks back it, run in both Chromium and Microsoft Edge, plus a speed test (95% of page requests must finish within 2 seconds; measured: 95% within 25 ms). [tests/browser/README.md](tests/browser/README.md) explains how to run them.
 
 ## Notes
 

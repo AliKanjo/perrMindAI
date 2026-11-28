@@ -27,13 +27,13 @@ Most test cases were run **automatically** with four browser test scripts (Playw
 
 | Group | Test cases | Passed | Failed | Not run |
 |---|---|---|---|---|
-| Normal operation | 21 | 21 | 0 | 0 |
+| Normal operation | 22 | 22 | 0 | 0 |
 | Invalid input | 11 | 11 | 0 | 0 |
 | Exceptional situations | 10 | 10 | 0 | 0 |
 | Security | 7 | 7 | 0 | 0 |
 | Non-functional requirements | 2 | 2 | 0 | 0 |
 | To be run with a real API key | 1 | – | – | 1 |
-| **Total** | **52** | **51** | **0** | **1** |
+| **Total** | **53** | **52** | **0** | **1** |
 
 The four automated browser scripts ran **151 individual checks, and all 151 passed in Chromium and again in Microsoft Edge**: 47 for the Project #3 workflows, 20 for moderation, 48 for the first Project #4 additions and 36 for quizzes, tutor courses and AI usage. The AI checks also passed with the Groq request format (11 checks). The scripts found no JavaScript errors in the browser and no unhandled errors in the server log. Defects found while testing were fixed before this final run (see section 4).
 
@@ -63,6 +63,7 @@ The four automated browser scripts ran **151 individual checks, and all 151 pass
 | TC-43 | Tutor applies to teach more courses (FR-07) | Click *Apply to teach more courses*, choose Databases, upload a transcript; the admin approves. | Courses she already teaches are not offered; after approval Databases appears on her profile. | The form showed "Apply to teach more courses" without her current course; status "under review"; after approval Databases was listed. | Pass |
 | TC-44 | AI usage page (FR-13) | As the admin open *AI usage*. | Requests, tokens, answer time and failures per day, feature and user, and the provider in use. | Totals, a 14-day chart, "AI study assistant" and "Practice quiz generator" rows, the most active users, recent failures and "Anthropic · claude-haiku-5-5". | Pass |
 | TC-46 | Groq as the AI provider | Start the application with `AI:Provider = Groq`; generate and take a quiz, ask the assistant, open *AI usage*. | Every AI feature works with Groq's request format. | Quiz generated and scored, answer with page references, AI usage showed "Groq · llama-3.3-70b-versatile" (11 of 11 checks). | Pass |
+| TC-53 | Settings from a `.env` file | Put `GROQ_API_KEY`, `AI__BaseUrl` (the stand-in) and `DB_CONNECTION` in a `.env` file in the repository folder; start the app with no other settings; ask the assistant; open *AI usage*. | The app connects to the database and uses Groq with that key; Git ignores the file; the key is not written to the log. | The answer came back with page references; AI usage showed "Groq · llama-3.3-70b-versatile"; `git status` did not list `.env`; the log did not contain the key. | Pass |
 | TC-14 | Use on small screens | Open the site on a phone and a tablet; use the menu button to navigate; open every student and admin page. | A menu button replaces the sidebar; no page needs sideways scrolling. | The menu opened and navigated to *My bookings*; no student page (phone) or admin page (tablet) scrolled sideways. | Pass |
 
 ### 3.2 Invalid input
@@ -119,7 +120,7 @@ The four automated browser scripts ran **151 individual checks, and all 151 pass
 
 | ID | Functionality | Input / actions | Expected result | Actual result | Result |
 |---|---|---|---|---|---|
-| TC-38 | AI features with a real API key | Put a real Groq or Anthropic API key in `appsettings.Local.json`. Ask Aylin's chat "Explain LIFO vs FIFO", then generate a 5-question quiz from "Lecture 5 – Stacks.pdf". | A plain-language answer that cites the Lecture 5 or Syllabus pages; a sensible quiz with explanations. | – (no key in the test environment; the team runs this before the presentation) | Not run |
+| TC-38 | AI features with a real API key | Put a real Groq or Anthropic API key in `.env` (or `appsettings.Local.json`). Ask Aylin's chat "Explain LIFO vs FIFO", then generate a 5-question quiz from "Lecture 5 – Stacks.pdf". | A plain-language answer that cites the Lecture 5 or Syllabus pages; a sensible quiz with explanations. | – (no key in the test environment; the team runs this before the presentation) | Not run |
 
 ## 4. Defects found and fixed during testing
 
