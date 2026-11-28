@@ -9,6 +9,8 @@ The results are summarised in [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md).
 | `workflows.test.js` | log-in, registration, tutor application and approval, course CRUD, users, availability, tutor search (Fetch), booking, double booking, reviews, accept/complete (Fetch), cancellation | 47 |
 | `moderation.test.js` | reporting a user and a review, admin decisions and their effects | 20 |
 | `project4.test.js` | change and reset password, material upload, AI assistant, access control, security headers, SQL injection, phone and tablet layouts | 48 |
+| `final.test.js` | AI practice quizzes and recommendations, tutors managing their courses, AI usage page, AI access switch | 36 |
+| `performance.test.js` | response times of 23 pages as the three roles (NFR-03: 95% within 2 seconds) | – |
 
 ## Running them
 
@@ -20,10 +22,11 @@ The results are summarised in [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md).
    ```
 
 2. Import the database again (`99_reset_database.sql`, then `01`, `02`, `03`). Every script expects the
-   demo data exactly as it is after a fresh import, so re-import it before each script.
+   demo data exactly as it is after a fresh import, so re-import it before each script
+   (`performance.test.js` only reads, so it can run at any time).
 
-3. Start the stand-in for the Claude API (only needed for `project4.test.js`); it answers like the real
-   API, costs nothing, and can simulate errors and time-outs:
+3. Start the stand-in for the AI providers (needed for `project4.test.js` and `final.test.js`); it answers
+   like the Anthropic and Groq APIs, costs nothing, and can simulate errors and time-outs:
 
    ```bash
    node fake-claude.js
@@ -43,6 +46,9 @@ The results are summarised in [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md).
    ```bash
    node project4.test.js
    ```
+
+   To run in Microsoft Edge instead of Chromium, set `BROWSER_CHANNEL=msedge`. To check the Groq request
+   format, start the app with `AI__Provider=Groq` as well and run `final.test.js` with `PROVIDER=Groq`.
 
 Screenshots are written to `shots/`. Environment variables `BASE_URL`, `FAKE_AI_URL` and `APP_LOG`
 change the defaults (`http://localhost:5055`, `http://localhost:5099`, `./app.log`).

@@ -18,7 +18,7 @@ What each member implemented is described in [CONTRIBUTIONS.md](CONTRIBUTIONS.md
 
 University students often need help that matches their own courses. PeerMind AI combines two kinds of help:
 
-- an **AI study assistant** that answers questions from the student's own course materials and shows the pages it used, and
+- an **AI study assistant** that answers questions from the student's own course materials and shows the pages it used, and writes **practice quizzes** from them with study recommendations, and
 - **peer tutoring** with students who did well in the course and were verified by an administrator.
 
 There are three roles (Student, Tutor, Admin). Each role sees its own menu, and the server checks the role on every request.
@@ -28,11 +28,17 @@ There are three roles (Student, Tutor, Admin). Each role sees its own menu, and 
 ### AI study assistant (FR-08, FR-09)
 
 1. A student uploads a PDF (lecture notes, slides exported to PDF) under *My materials*. The server reads the text page by page and stores it.
-2. In the *AI assistant* the student asks a question. The server finds the pages that match the question best and sends **only those pages** to Claude (Anthropic's AI model) with the instruction to answer only from them.
+2. In the *AI assistant* the student asks a question. The server finds the pages that match the question best and sends **only those pages** to the AI (Claude or a Groq model) with the instruction to answer only from them.
 3. The answer appears without a page reload, with references such as *Lecture 5 – Stacks.pdf, p.3*. Questions and answers are saved.
 4. When the materials do not contain the answer, the assistant says so instead of guessing (Scenario 2 of the proposal). If nothing in the materials matches at all, the AI is not even called.
 
 Each student's files and chats are private. A notice under every answer says that AI answers may contain errors (NFR-07).
+
+### AI practice quizzes and study recommendations (FR-10, FR-11)
+
+1. Under *Practice quizzes* the student picks one of their materials and the number of questions. The AI writes multiple-choice questions from it, and the server checks every question (four different options, exactly one correct answer, a real page number) before storing the quiz.
+2. The student answers the questions and submits. The result shows the score, whether the pass mark (75%) was reached, the correct answers with explanations and the page each question came from.
+3. Based on the missed questions the student gets recommendations: review a topic or particular pages, retry the quiz, or find a tutor for the course. They also appear on the dashboard and can be dismissed. Quizzes can be retried and deleted.
 
 ### Workflow 1 – Find and book a tutor
 
@@ -55,7 +61,8 @@ Two students can never book the same slot: the database enforces it with a uniqu
 - **Course library (admin):** create, list, search, edit and delete courses. A course that is in use is deactivated instead of deleted.
 - **User management (admin):** search and filter users, suspend or re-activate an account, delete an account that has no activity.
 - **Reports and moderation:** students and tutors report problems; the administrator dismisses, warns or suspends, and every decision is logged.
-- **Tutor area:** dashboard, availability (add and remove time slots), reviews with replies, public profile editor.
+- **Tutor area:** dashboard, availability (add and remove time slots), reviews with replies, public profile editor, and **courses**: a tutor removes a course they no longer teach and applies to teach more courses, which an administrator approves (FR-07).
+- **AI usage monitoring (admin):** requests, tokens, answer times and failures per day, feature and user, and a switch to turn the AI features off for one user (FR-13).
 - **Notifications:** created by the database for bookings, reviews and application decisions; "mark all as read" uses Fetch.
 - **Works on phones and tablets:** a menu button opens the sidebar on small screens and tables scroll inside their card.
 
@@ -66,7 +73,7 @@ Two students can never book the same slot: the database enforces it with a uniqu
 | Backend | C#, ASP.NET Core MVC (.NET 8) |
 | Database | MariaDB / MySQL, accessed with SQL stored procedures through `MySqlConnector` |
 | Frontend | Razor views, HTML, CSS and plain JavaScript (Fetch API, no framework) |
-| AI | Claude (Anthropic Messages API) called with `HttpClient` |
+| AI | Claude (Anthropic Messages API) or Groq (OpenAI-compatible API), called with `HttpClient` |
 | PDF text | `PdfPig` |
 | Passwords | bcrypt hashes (`BCrypt.Net-Next`) |
 | Tests | Playwright browser tests (Node.js), see `tests/browser/` |
@@ -101,7 +108,7 @@ Controllers handle requests, repositories talk to the database, views only displ
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download) or newer (the project also runs on newer .NET versions)
 - MariaDB 10.4+ or MySQL 8, for example the one included in [XAMPP](https://www.apachefriends.org/)
-- Optional, for the AI assistant: an [Anthropic API key](https://console.anthropic.com/)
+- Optional, for the AI features: a [Groq API key](https://console.groq.com/keys) (free tier) or an [Anthropic API key](https://console.anthropic.com/)
 
 The NuGet packages (`MySqlConnector`, `BCrypt.Net-Next`, `PdfPig`) are downloaded automatically on the first build.
 
@@ -148,19 +155,35 @@ If your database name, user, password or port is different, do not edit `appsett
 
 `appsettings.Local.json` overrides `appsettings.json` and is excluded from Git, so passwords are never committed.
 
-### 3. AI assistant (optional)
+### 3. AI features (optional)
 
-Add your Anthropic API key to the same `appsettings.Local.json`:
+The AI study assistant and the practice quizzes need an API key from **Groq** or **Anthropic**. Add it to the same `appsettings.Local.json`.
+
+With Groq (free tier available, open models such as Llama):
 
 ```json
 {
   "AI": {
+    "Provider": "Groq",
+    "ApiKey": "gsk_..."
+  }
+}
+```
+
+With Anthropic (Claude):
+
+```json
+{
+  "AI": {
+    "Provider": "Anthropic",
     "ApiKey": "sk-ant-..."
   }
 }
 ```
 
-Without a key, everything else works: the assistant page explains that the AI is not configured, and materials can still be uploaded. The model and the time-out can be changed in the `AI` section of `appsettings.json` (default model `claude-haiku-5-5`). Each AI question costs a small amount on the Anthropic account; a student can ask at most 30 questions per hour.
+The default models are `llama-3.3-70b-versatile` for Groq and `claude-haiku-5-5` for Anthropic. To use another model, add `"Model": "..."` to the `AI` section; providers retire models over time, so check the provider's model list if a model stops working.
+
+Without a key, everything else works: the AI pages explain that the AI is not configured, and materials can still be uploaded. A student can ask at most 30 questions and generate at most 10 quizzes per hour. Paid providers charge a small amount per request.
 
 Never put the key in `appsettings.json`, and do not include `appsettings.Local.json` in a ZIP you share.
 
@@ -190,11 +213,11 @@ These are sample accounts from `03_seed_data.sql`; there are no real passwords o
 
 ### Suggested demonstration
 
-1. **Student (Aylin)** – open the *AI assistant* and ask "Explain LIFO vs FIFO"; upload a PDF under *My materials* and ask about it.
+1. **Student (Aylin)** – open the *AI assistant* and ask "Explain LIFO vs FIFO"; upload a PDF under *My materials* and ask about it; generate a quiz under *Practice quizzes*, take it and look at the recommendations.
 2. **Student** – search for a tutor, open *Elif Demir* and book a free slot; review the completed session with Mei Tanaka under *My bookings*.
-3. **Tutor (Elif)** – open *Booking requests*, accept the new request and mark yesterday's session as completed.
+3. **Tutor (Elif)** – open *Booking requests*, accept the new request and mark yesterday's session as completed; on *Tutor profile* see the courses she teaches.
 4. **Register** a new account with an e-mail such as `you@isikun.edu.tr` (a Gmail address is rejected), verify it and submit a tutor application with any PDF.
-5. **Admin (Dana)** – approve the application under *Tutor verification*, manage a course in the *Course library*, and decide a report under *Moderation*.
+5. **Admin (Dana)** – approve the application under *Tutor verification*, manage a course in the *Course library*, decide a report under *Moderation*, and open *AI usage*.
 6. **Phone** – open the site on a phone or narrow the browser window and use the menu button.
 
 ## Validation, error handling and security
@@ -210,12 +233,13 @@ These are sample accounts from `03_seed_data.sql`; there are no real passwords o
 
 ## Testing
 
-The test report ([docs/TEST_REPORT.pdf](docs/TEST_REPORT.pdf), source [docs/TEST_REPORT.md](docs/TEST_REPORT.md)) contains 38 test cases covering normal operation, invalid input, exceptional situations and security. 115 automated browser checks back it; [tests/browser/README.md](tests/browser/README.md) explains how to run them.
+The test report ([docs/TEST_REPORT.pdf](docs/TEST_REPORT.pdf), source [docs/TEST_REPORT.md](docs/TEST_REPORT.md)) contains 52 test cases covering normal operation, invalid input, exceptional situations, security, speed and browser support. 151 automated browser checks back it, run in both Chromium and Microsoft Edge, plus a speed test (95% of page requests must finish within 2 seconds; measured: 95% within 25 ms). [tests/browser/README.md](tests/browser/README.md) explains how to run them.
 
 ## Notes
 
 - **E-mails are simulated.** The project has no mail server. After registration, the verification page is shown directly. Password-reset e-mails are written to the terminal where the application runs; copy the link from there.
 - **Payments and video calls** are out of scope, as stated in the proposal. Prices are shown for information only.
-- **AI quiz generation and roadmaps** from the proposal are not part of this version; the AI assistant covers FR-08 and FR-09.
+- **Database technology:** the proposal planned SQL Server with Entity Framework Core; the application uses MariaDB/MySQL with SQL stored procedures instead, which is what the course covers and what XAMPP provides.
+- **AI roadmaps** (the section-by-section learning path of the Project #2 prototype) are not part of this version; they go beyond the functional requirements of the proposal.
 - The seeded materials and transcripts are sample records whose text is in the database but whose files are not; files uploaded through the application are stored in `PeerMindAI/App_Data/uploads`.
 - Data is stored in MariaDB/MySQL, so it is kept when the application or the database server is restarted.

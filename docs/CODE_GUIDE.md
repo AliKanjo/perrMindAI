@@ -287,18 +287,60 @@ One view serves both create and edit: `Views/Courses/Form.cshtml`. Validation ru
 | Limit: 30 questions per hour | `StudyAssistant.AskAsync` → `AssistantRepository.CountRecentQuestionsAsync` |
 | Find the best pages: keyword scoring with a small stemmer | `Services/SourceFinder.FindRelevant` over `MaterialRepository.GetSearchableChunksAsync` |
 | No matching page → honest "not in your materials" answer without calling the AI | `StudyAssistant.AskAsync` (`NotFoundAnswer`) |
-| Otherwise send only those pages to Claude with strict instructions | `StudyAssistant.CallClaudeAsync` → `Services/ClaudeClient.AskAsync` (HTTPS POST to `/v1/messages` with the `x-api-key` and `anthropic-version` headers) |
-| Claude says the pages are not enough (`NOT_IN_MATERIALS`) → honest answer | `StudyAssistant.AskAsync` |
+| Otherwise send only those pages to the AI with strict instructions | `StudyAssistant.CallAiAsync` → `Services/AiClient.AskAsync` (Anthropic: POST `/v1/messages` with the `x-api-key` and `anthropic-version` headers; Groq: POST `/openai/v1/chat/completions` with a Bearer token) |
+| The AI says the pages are not enough (`NOT_IN_MATERIALS`) → honest answer | `StudyAssistant.AskAsync` |
 | Turn `[1]` citations into `[file, p.N]` and keep the cited pages | `StudyAssistant.ReplaceCitations` |
 | Save question, answer and sources | `AssistantRepository.AddMessageAsync` (`sp_ai_message_add`, which also checks the user's AI access) and `AddSourceAsync` (`sp_ai_message_add_source`, only the student's own pages) |
 | Log every AI call, also failed ones | `AssistantRepository.LogUsageAsync` → `ai_usage_logs` |
-| AI errors and time-outs | `ClaudeClient` throws `AiServiceException` with a friendly message; `AssistantController.Ask` returns it as JSON (503), the details go only to the server log |
+| AI errors and time-outs | `AiClient` throws `AiServiceException` with a friendly message; `AssistantController.Ask` returns it as JSON (503), the details go only to the server log |
 
-The API key is read from the configuration (`AI:ApiKey`), normally from `appsettings.Local.json`. Without a key, `ClaudeClient.IsConfigured` is false and the page shows a notice.
+The provider (`AI:Provider`, Anthropic or Groq) and the API key (`AI:ApiKey`) are read from the configuration, normally from `appsettings.Local.json`. `AiClient` builds the request in the format of the chosen provider and reads its answer, so the rest of the code does not depend on the provider. Without a key, `AiClient.IsConfigured` is false and the page shows a notice.
 
 ---
 
-## Part 13 – Change and reset password (Project #4)
+### 12.3 Practice quizzes and study recommendations (FR-10, FR-11)
+
+| Step | Where |
+|---|---|
+| Quiz list and the "Generate a quiz" form | `QuizzesController.Index` → `QuizRepository.ListForStudentAsync` → `Views/Quizzes/Index.cshtml` |
+| Generate: limit of 10 quizzes per hour, the material must be the student's and processed | `QuizzesController.Generate` → `Services/QuizGenerator.GenerateAsync` |
+| Send the material's text (spread over its pages) and the course topics to the AI, asking for JSON | `QuizGenerator.AskAiAsync`, `SelectExcerpts` → `AiClient.AskAsync(..., jsonOnly: true)` |
+| Check every question: four different options, one correct answer, a page that exists; skip bad ones | `QuizGenerator.Parse`, `ReadQuestion` |
+| Store the quiz, its questions and options (removed again if storing fails half-way) | `QuizRepository.CreateAsync`, `AddQuestionAsync`, `AddOptionAsync` → `sp_quiz_create`, `sp_quiz_add_question`, `sp_quiz_add_option` |
+| Start an attempt (also "Retry") | `QuizzesController.Start` / after generating → `QuizRepository.StartAttemptAsync` → `sp_quiz_start` |
+| Show the questions without the correct answers | `QuizzesController.Take` → `QuizRepository.GetOpenAttemptAsync` → `Views/Quizzes/Take.cshtml` (progress bar script inside) |
+| Submit: every question must be answered (browser and server) | `QuizzesController.Submit` (answers arrive as `answers[questionId] = optionId`) → `SaveAnswerAsync` (`sp_quiz_answer`) → `SubmitAsync` (`sp_quiz_submit`) |
+| Scoring and recommendations | `sp_quiz_submit`: score, pass/fail, one "review" recommendation per weak topic (or per material with the missed pages), "retry" when failed, "find a tutor" when a tutor teaches the course |
+| Results page | `QuizzesController.Result` → `QuizRepository.GetResultAsync` (`sp_quiz_get_result`) → `Views/Quizzes/Result.cshtml` |
+| Recommendations on the dashboard, dismiss with Fetch | `StudentController.Index` → `QuizRepository.GetOpenRecommendationsAsync`; `wwwroot/js/recommendations.js` → `POST /recommendations/{id}/dismiss` → `QuizzesController.Dismiss` |
+| Delete a quiz | `QuizzesController.Delete` → `sp_quiz_delete` |
+
+---
+
+## Part 13 – Tutors manage their courses (FR-07)
+
+**Owner: Not assigned yet**
+
+| Action | Where |
+|---|---|
+| List the courses a tutor teaches | `TutorController.Profile` → `TutorRepository.GetCoursesAsync` → "Courses you teach" card in `Views/Tutor/Profile.cshtml` |
+| Remove a course | `TutorController.RemoveCourse` → `TutorRepository.RemoveCourseAsync` → `sp_tutor_remove_course` (refused for the last course or while sessions for it are pending or confirmed) |
+| Apply to teach more courses | `TutorApplicationController.Apply`: an approved tutor may apply again (`IsLocked`); courses already taught are not offered (`GetTaughtCourseIdsAsync`); the admin approves as usual and `sp_application_approve` adds the new courses |
+
+---
+
+## Part 14 – AI usage monitoring and AI access (FR-13)
+
+**Owner: Not assigned yet**
+
+| Action | Where |
+|---|---|
+| AI usage page | `AdminController.AiUsage` → `Data/AiUsageRepository.GetPageAsync` (totals for today, 7 and 30 days, per day, per feature, top users, recent failures from `ai_usage_logs`) → `Views/Admin/AiUsage.cshtml` |
+| Turn the AI features off or on for one user | `Views/Admin/UserDetails.cshtml` → `AdminController.SetAiAccess` → `UserRepository.SetAiAccessAsync` → `sp_user_set_status` (`users.ai_access_enabled`); `AssistantRepository.IsAiAllowedAsync` checks it before every AI request, and `sp_ai_message_add` checks it again |
+
+---
+
+## Part 15 – Change and reset password (Project #4)
 
 **Owner: Not assigned yet**
 
@@ -311,7 +353,7 @@ The API key is read from the configuration (`AI:ApiKey`), normally from `appsett
 
 ---
 
-## Part 14 – Automated tests (Project #4)
+## Part 16 – Automated tests (Project #4)
 
 **Owner: Not assigned yet**
 
@@ -320,6 +362,8 @@ The API key is read from the configuration (`AI:ApiKey`), normally from `appsett
 | `tests/browser/workflows.test.js` | Project #3 workflows (47 checks) |
 | `tests/browser/moderation.test.js` | reports and moderation (20 checks) |
 | `tests/browser/project4.test.js` | passwords, materials, AI assistant, security, phone and tablet (48 checks) |
-| `tests/browser/fake-claude.js` | a local stand-in for the Claude API used by the tests |
+| `tests/browser/final.test.js` | quizzes, recommendations, tutor courses, AI usage, AI access, Groq format (36 checks) |
+| `tests/browser/performance.test.js` | response times for NFR-03 |
+| `tests/browser/fake-claude.js` | a local stand-in for the Anthropic and Groq APIs used by the tests |
 | `docs/TEST_REPORT.md` / `.pdf` | the test report |
 
