@@ -166,7 +166,7 @@ INSERT INTO course_materials (material_id, uploaded_by, course_id, file_name, st
  (2, 2, 1, 'Lecture 5 – Stacks.pdf',    'private/materials/2/1/lecture5.pdf',      'PDF',  2411520, 24, 'Processed', 1, @T - INTERVAL 20 DAY),
  (3, 2, 1, 'Lecture 6 – Queues.pptx',   'private/materials/2/1/lecture6.pptx',     'PPTX', 3145728, 18, 'Processed', 1, @T - INTERVAL 13 DAY),
  (4, 2, 1, 'Textbook ch. 6.pdf',        'private/materials/2/1/textbook-ch6.pdf',  'PDF',  5242880, 30, 'Processed', 1, @T - INTERVAL 20 DAY),
- (5, 2, 2, 'Integrals cheat sheet.pdf', 'private/materials/2/2/integrals.pdf',     'PDF',  401408,  4,  'Uploaded',  1, @now - INTERVAL 1 HOUR);
+ (5, 2, 2, 'Integrals cheat sheet.pdf', 'private/materials/2/2/integrals.pdf',     'PDF',  401408,  4,  'Processed', 1, @now - INTERVAL 1 HOUR);
 
 INSERT INTO document_chunks (chunk_id, material_id, page_number, chunk_index, content) VALUES
  (1, 1, 4,  1, 'Week 5: Stacks and queues. Week 6: Queue variants and BFS. Section quizzes require 75% to pass.'),
@@ -174,7 +174,9 @@ INSERT INTO document_chunks (chunk_id, material_id, page_number, chunk_index, co
  (3, 2, 8,  2, 'LIFO vs FIFO: a stack removes the newest element first, a queue removes the oldest element first.'),
  (4, 3, 2,  1, 'A queue adds elements at the rear (enqueue) and removes them from the front (dequeue).'),
  (5, 3, 9,  2, 'Breadth-first search explores a graph level by level using a FIFO queue.'),
- (6, 4, 12, 1, 'Array-backed stacks double their capacity when full, so push costs O(1) amortized time.');
+ (6, 4, 12, 1, 'Array-backed stacks double their capacity when full, so push costs O(1) amortized time.'),
+ (7, 5, 1,  1, 'Integration by parts: the integral of u dv equals u v minus the integral of v du. Choose u so that its derivative becomes simpler, for example u = x when integrating x e^x.'),
+ (8, 5, 3,  2, 'Integration by substitution reverses the chain rule: set u = g(x), then du = g''(x) dx. Definite integrals change their limits to u = g(a) and u = g(b).');
 
 -- ---------- AI roadmap for Aylin's Data Structures course ----------
 INSERT INTO roadmaps (roadmap_id, enrollment_id, generated_at) VALUES (1, 1, @T - INTERVAL 57 DAY);

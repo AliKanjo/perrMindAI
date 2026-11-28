@@ -1,8 +1,8 @@
 # PeerMind AI
 
-A peer tutoring platform for university students: find a verified tutor, book a session, and apply to become a tutor yourself.
+An AI-powered peer tutoring and learning platform for university students. Students ask an AI assistant about their own lecture notes, find and book verified peer tutors, and can apply to become tutors themselves.
 
-**Course:** SOFT3111 – Internet and Web Programming, Fall 2026 · **Project #3** (functional web application)
+**Course:** SOFT3111 – Internet and Web Programming, Fall 2026 · **Project #4** (final application)
 
 **Group members**
 
@@ -12,11 +12,27 @@ A peer tutoring platform for university students: find a verified tutor, book a 
 | Ammar Azzan | 22COMP1048 |
 | Kenan Aljabi | 21COMP1073 |
 
-What each member implemented is described in [CONTRIBUTIONS.md](CONTRIBUTIONS.md).
+What each member implemented is described in [CONTRIBUTIONS.md](CONTRIBUTIONS.md). The test report is in [docs/TEST_REPORT.pdf](docs/TEST_REPORT.pdf).
 
-## Implemented functionality
+## Purpose
 
-The application has three roles (Student, Tutor, Admin). Each role sees its own menu, and the server checks the role on every request.
+University students often need help that matches their own courses. PeerMind AI combines two kinds of help:
+
+- an **AI study assistant** that answers questions from the student's own course materials and shows the pages it used, and
+- **peer tutoring** with students who did well in the course and were verified by an administrator.
+
+There are three roles (Student, Tutor, Admin). Each role sees its own menu, and the server checks the role on every request.
+
+## Main features
+
+### AI study assistant (FR-08, FR-09)
+
+1. A student uploads a PDF (lecture notes, slides exported to PDF) under *My materials*. The server reads the text page by page and stores it.
+2. In the *AI assistant* the student asks a question. The server finds the pages that match the question best and sends **only those pages** to Claude (Anthropic's AI model) with the instruction to answer only from them.
+3. The answer appears without a page reload, with references such as *Lecture 5 – Stacks.pdf, p.3*. Questions and answers are saved.
+4. When the materials do not contain the answer, the assistant says so instead of guessing (Scenario 2 of the proposal). If nothing in the materials matches at all, the AI is not even called.
+
+Each student's files and chats are private. A notice under every answer says that AI answers may contain errors (NFR-07).
 
 ### Workflow 1 – Find and book a tutor
 
@@ -35,23 +51,25 @@ Two students can never book the same slot: the database enforces it with a uniqu
 
 ### Other features
 
-- **Accounts:** registration restricted to university e-mail domains, e-mail verification step, log-in and log-out, lock-out after five failed log-ins, profile and settings page.
+- **Accounts:** registration restricted to university e-mail domains, e-mail verification step, log-in and log-out, lock-out after five failed log-ins, profile and settings page, **change password**, and **forgot password** with a one-time reset link.
 - **Course library (admin):** create, list, search, edit and delete courses. A course that is in use is deactivated instead of deleted.
 - **User management (admin):** search and filter users, suspend or re-activate an account, delete an account that has no activity.
-- **Reports and moderation:** a student or tutor can report the other person of a booking, and a tutor can report a review. The administrator dismisses the report, warns the user or suspends the user; warning or suspending also hides a reported review and recalculates the tutor's rating. Every decision appears in a decision log.
+- **Reports and moderation:** students and tutors report problems; the administrator dismisses, warns or suspends, and every decision is logged.
 - **Tutor area:** dashboard, availability (add and remove time slots), reviews with replies, public profile editor.
 - **Notifications:** created by the database for bookings, reviews and application decisions; "mark all as read" uses Fetch.
+- **Works on phones and tablets:** a menu button opens the sidebar on small screens and tables scroll inside their card.
 
-The AI features of the proposal (roadmap, study assistant, quiz generation) are not part of this version.
-
-## Technology
+## Technologies
 
 | Layer | Technology |
 |---|---|
 | Backend | C#, ASP.NET Core MVC (.NET 8) |
 | Database | MariaDB / MySQL, accessed with SQL stored procedures through `MySqlConnector` |
-| Frontend | Razor views, HTML, CSS and plain JavaScript (no framework) |
+| Frontend | Razor views, HTML, CSS and plain JavaScript (Fetch API, no framework) |
+| AI | Claude (Anthropic Messages API) called with `HttpClient` |
+| PDF text | `PdfPig` |
 | Passwords | bcrypt hashes (`BCrypt.Net-Next`) |
+| Tests | Playwright browser tests (Node.js), see `tests/browser/` |
 
 ## Project structure
 
@@ -63,35 +81,39 @@ database/                 SQL scripts that create the database
   02_procedures.sql         views, triggers and stored procedures (business rules)
   03_seed_data.sql          demo data
   99_reset_database.sql     removes everything (to start again)
-docs/                     Project #1 proposal, Project #2 prototype and the code guide
+docs/                     test report, code guide, Project #1 proposal and Project #2 prototype
 PeerMindAI/               the ASP.NET Core MVC application
-  Controllers/              one controller per area (Account, Tutors, Bookings, Tutor, Admin, Moderation, ...)
+  Controllers/              one controller per area (Account, Assistant, Tutors, Bookings, Admin, ...)
   Models/                   entities and form models with validation attributes
   Data/                     database access: one repository class per area
-  Services/                 log-in session check and private file storage
+  Services/                 AI client, PDF reading, file storage, log-in session check
   Helpers/                  small view helpers (icons, badges, date formats)
   Views/                    Razor pages
   wwwroot/css, wwwroot/js   stylesheet and JavaScript
+tests/browser/            automated browser tests
 ```
 
-Responsibilities are separated as MVC requires: controllers handle requests, repositories talk to the database, views only display data. The business rules (double booking, cancellation window, minimum GPA, ...) live in the stored procedures, which raise a readable error message that the application shows to the user.
+Controllers handle requests, repositories talk to the database, views only display data. The business rules (double booking, cancellation window, minimum GPA, ...) live in the stored procedures, which raise a readable error message that the application shows to the user.
 
-## Installation
+## Installation and running
 
 ### Requirements
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) or newer
-- MariaDB 10.4+ or MySQL 8 (for example the one included in [XAMPP](https://www.apachefriends.org/))
+- [.NET 8 SDK](https://dotnet.microsoft.com/download) or newer (the project also runs on newer .NET versions)
+- MariaDB 10.4+ or MySQL 8, for example the one included in [XAMPP](https://www.apachefriends.org/)
+- Optional, for the AI assistant: an [Anthropic API key](https://console.anthropic.com/)
 
-### 1. Create the database
+The NuGet packages (`MySqlConnector`, `BCrypt.Net-Next`, `PdfPig`) are downloaded automatically on the first build.
+
+### 1. Initialize the database
 
 With XAMPP: start **MySQL** (and **Apache** for phpMyAdmin), then open <http://localhost/phpmyadmin>.
 
 1. Create a new database named `peermindai_db`.
 2. Select it in the left sidebar and use **Import** to run these files **in this order**:
-   1. `database/01_schema.sql`
-   2. `database/02_procedures.sql`
-   3. `database/03_seed_data.sql`
+   1. `database/01_schema.sql` – tables
+   2. `database/02_procedures.sql` – views, triggers and stored procedures
+   3. `database/03_seed_data.sql` – demo data
 
 Or from a terminal:
 
@@ -102,11 +124,11 @@ mysql -u root peermindai_db < database/02_procedures.sql
 mysql -u root peermindai_db < database/03_seed_data.sql
 ```
 
-Import the seed data only once. To start again from an empty database, import `database/99_reset_database.sql` and then the three files again.
+Import the demo data only once; a second import stops with "Duplicate entry". To start again from an empty database, import `database/99_reset_database.sql` and then the three files again.
 
 ### 2. Configure the connection
 
-The connection string is in `PeerMindAI/appsettings.json`. The default matches a standard XAMPP installation (user `root`, empty password):
+`PeerMindAI/appsettings.json` matches a standard XAMPP installation (user `root`, empty password, database `peermindai_db`):
 
 ```json
 "ConnectionStrings": {
@@ -114,20 +136,47 @@ The connection string is in `PeerMindAI/appsettings.json`. The default matches a
 }
 ```
 
-Change the user, password or port there if your MySQL installation is different.
+If your database name, user, password or port is different, do not edit `appsettings.json`. Create `PeerMindAI/appsettings.Local.json` with only the values that differ, for example:
 
-### 3. Run the application
+```json
+{
+  "ConnectionStrings": {
+    "PeerMind": "Server=localhost;Port=3306;Database=my_database;User ID=root;Password=secret;"
+  }
+}
+```
+
+`appsettings.Local.json` overrides `appsettings.json` and is excluded from Git, so passwords are never committed.
+
+### 3. AI assistant (optional)
+
+Add your Anthropic API key to the same `appsettings.Local.json`:
+
+```json
+{
+  "AI": {
+    "ApiKey": "sk-ant-..."
+  }
+}
+```
+
+Without a key, everything else works: the assistant page explains that the AI is not configured, and materials can still be uploaded. The model and the time-out can be changed in the `AI` section of `appsettings.json` (default model `claude-haiku-5-5`). Each AI question costs a small amount on the Anthropic account; a student can ask at most 30 questions per hour.
+
+Never put the key in `appsettings.json`, and do not include `appsettings.Local.json` in a ZIP you share.
+
+### 4. Run the application
 
 ```bash
 cd PeerMindAI
+```
+
+```bash
 dotnet run
 ```
 
-Then open <http://localhost:5055>. In Visual Studio you can instead open `PeerMindAI/PeerMindAI.csproj` and press **F5**.
+Then open <http://localhost:5055>. In Visual Studio or VS Code (with the C# Dev Kit extension) you can instead open the project and press **F5**.
 
-The NuGet packages (`MySqlConnector`, `BCrypt.Net-Next`) are downloaded automatically on the first build.
-
-## Demo accounts
+## Demo accounts and sample data
 
 All demo accounts use the password `Demo@12345`. The log-in page has buttons that fill them in.
 
@@ -137,27 +186,36 @@ All demo accounts use the password `Demo@12345`. The log-in page has buttons tha
 | Tutor | `elif.demir@university.edu` |
 | Admin | `dana@peermind.ai` |
 
-These are sample accounts from `03_seed_data.sql`; there are no real passwords or secrets in this repository.
+These are sample accounts from `03_seed_data.sql`; there are no real passwords or secrets in this repository. The demo data also contains 20 users, 6 approved tutors, 7 courses, bookings in every state, reviews, pending tutor applications, open reports, and four processed Data Structures materials with an AI chat for Aylin.
 
 ### Suggested demonstration
 
-1. **Student** – search for a tutor, open *Elif Demir*, book a free slot. Open *My bookings* and review the completed session with Mei Tanaka.
-2. **Tutor** – open *Booking requests*, accept the new request, and mark yesterday's session as completed.
-3. **Register** a new account with an e-mail such as `you@isikun.edu.tr` (a Gmail address is rejected), verify it, and submit a tutor application with any PDF.
-4. **Admin** – approve the application under *Tutor verification*, then add, edit and delete a course in the *Course library*.
-5. **Admin** – open *Moderation* and decide the open reports, for example suspend the author of the spam review and see the review disappear from the tutor's profile.
+1. **Student (Aylin)** – open the *AI assistant* and ask "Explain LIFO vs FIFO"; upload a PDF under *My materials* and ask about it.
+2. **Student** – search for a tutor, open *Elif Demir* and book a free slot; review the completed session with Mei Tanaka under *My bookings*.
+3. **Tutor (Elif)** – open *Booking requests*, accept the new request and mark yesterday's session as completed.
+4. **Register** a new account with an e-mail such as `you@isikun.edu.tr` (a Gmail address is rejected), verify it and submit a tutor application with any PDF.
+5. **Admin (Dana)** – approve the application under *Tutor verification*, manage a course in the *Course library*, and decide a report under *Moderation*.
+6. **Phone** – open the site on a phone or narrow the browser window and use the menu button.
 
-## Validation and error handling
+## Validation, error handling and security
 
-- Every form is validated in the browser (JavaScript) **and** again on the server (model validation attributes). Both use the same messages.
-- Rules that need the database are enforced by the stored procedures, for example "This time slot is no longer available", "A course with this code already exists" or "Only university e-mail addresses are accepted".
-- Uploaded transcripts must be real PDF files of at most 5 MB. They are stored outside the public web folder and only administrators can download them.
-- Lists show a message when they are empty. Unknown pages, forbidden pages and a stopped database show a friendly error page.
-- All POST requests are protected with an anti-forgery token, and all SQL uses parameters.
+- Every form is validated in the browser (JavaScript) **and** again on the server (model validation attributes). Both show the same messages.
+- Rules that need the database are enforced by the stored procedures, for example "This time slot is no longer available" or "A course with this code already exists".
+- All SQL uses parameters or stored procedures, so user input is never part of the SQL text (protection against SQL injection).
+- Passwords are stored as bcrypt hashes. Five failed log-ins lock an account for 15 minutes. Reset links work once and for 30 minutes, and "forgot password" gives the same answer for every e-mail, so nobody can find out which addresses have accounts.
+- Every page checks the user's role on the server; a student can only open their own bookings, materials and chats.
+- All POST requests need an anti-forgery token. Responses carry security headers (no framing, no type guessing, a content security policy), and the log-in cookie cannot be read by JavaScript.
+- Uploaded PDFs are checked (type, size, real PDF header) and stored outside the public web folder.
+- Users only see friendly messages: unknown and forbidden pages, a stopped database and AI failures show an explanation without technical details, which go to the server log.
+
+## Testing
+
+The test report ([docs/TEST_REPORT.pdf](docs/TEST_REPORT.pdf), source [docs/TEST_REPORT.md](docs/TEST_REPORT.md)) contains 38 test cases covering normal operation, invalid input, exceptional situations and security. 115 automated browser checks back it; [tests/browser/README.md](tests/browser/README.md) explains how to run them.
 
 ## Notes
 
-- **E-mail verification is simulated.** The project has no mail server, so the page that the verification link would open is shown directly after registration.
+- **E-mails are simulated.** The project has no mail server. After registration, the verification page is shown directly. Password-reset e-mails are written to the terminal where the application runs; copy the link from there.
 - **Payments and video calls** are out of scope, as stated in the proposal. Prices are shown for information only.
-- The transcripts listed for the seeded applications are sample records without a file; transcripts uploaded through the application can be opened by the administrator.
+- **AI quiz generation and roadmaps** from the proposal are not part of this version; the AI assistant covers FR-08 and FR-09.
+- The seeded materials and transcripts are sample records whose text is in the database but whose files are not; files uploaded through the application are stored in `PeerMindAI/App_Data/uploads`.
 - Data is stored in MariaDB/MySQL, so it is kept when the application or the database server is restarted.

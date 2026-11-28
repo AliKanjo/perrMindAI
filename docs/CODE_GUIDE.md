@@ -35,7 +35,7 @@ The owner of each section comes from [CONTRIBUTIONS.md](../CONTRIBUTIONS.md).
 
 | File | What it does |
 |---|---|
-| `Program.cs` | Starts the app. Registers MVC, the repositories and services (dependency injection), cookie log-in with roles, the error pages, and checks the anti-forgery token on every POST. |
+| `Program.cs` | Starts the app. Loads the optional `appsettings.Local.json` (each computer's passwords and API key), registers MVC, the repositories and services (dependency injection), cookie log-in with roles and secure cookie flags, the error pages and the security headers, and checks the anti-forgery token on every POST. |
 | `appsettings.json` | The database connection string and the upload settings. |
 | `Data/Database.cs` | The only class that talks to MariaDB. `QueryProcedureAsync` / `QuerySqlAsync` return rows, `ExecuteProcedureAsync` / `ExecuteSqlAsync` change data, `ReadProcedureAsync` reads procedures that return several result sets. `In(...)` and `Out(...)` create parameters, so values are never pasted into SQL text (prevents SQL injection). |
 | `Data/DbRuleException.cs` | The exception for a broken business rule (SQLSTATE 45000). Its message is safe to show to the user. |
@@ -46,8 +46,8 @@ The owner of each section comes from [CONTRIBUTIONS.md](../CONTRIBUTIONS.md).
 | `Views/Shared/_Layout.cshtml` | The sidebar, top bar and page frame of the logged-in area. The menu is chosen by role. |
 | `Views/Shared/_PublicLayout.cshtml` | Frame of the public pages (landing, log-in, register, errors). |
 | `Views/Shared/_FormErrors.cshtml` | Shows errors that are not tied to one field, such as a message from a stored procedure. |
-| `wwwroot/css/site.css` | The styles, taken from the Project #2 prototype. |
-| `wwwroot/js/site.js` | Shared JavaScript: toasts, opening and closing pop-ups, the `api()` fetch helper (sends JSON and the anti-forgery token, turns errors into messages), and client-side form validation for every form marked `data-validate`. |
+| `wwwroot/css/site.css` | The styles, taken from the Project #2 prototype, plus the small-screen rules (slide-in menu, tables that scroll inside their card, stacked layouts on phones). |
+| `wwwroot/js/site.js` | Shared JavaScript: toasts, opening and closing pop-ups, the side menu on small screens, the `api()` fetch helper (sends JSON and the anti-forgery token, turns errors into messages), and client-side form validation for every form marked `data-validate`. |
 
 ### How validation works on both sides
 
@@ -257,3 +257,69 @@ One view serves both create and edit: `Views/Courses/Form.cshtml`. Validation ru
 |---|---|
 | Landing page (top tutors from the database) | `HomeController.Index` → `Views/Home/Index.cshtml` |
 | Student dashboard | `StudentController.Index` → `Views/Student/Index.cshtml` |
+
+---
+
+## Part 12 – AI study assistant (Project #4)
+
+**Owner: Not assigned yet**
+
+### 12.1 Uploading material
+
+| Step | Where |
+|---|---|
+| The student opens *My materials* | `MaterialsController.Index` → `MaterialRepository.ListForStudentAsync` (only the student's own files) → `Views/Materials/Index.cshtml` |
+| Upload a PDF: check type, size and the `%PDF` header | `MaterialsController.Upload` → `Services/MaterialStorage.ValidateAsync` (`PdfSignature` checks the header) |
+| Save the file privately and register it | `MaterialStorage.SaveAsync` (random name in `App_Data/uploads`, outside `wwwroot`) → `MaterialRepository.CreateAsync` → `sp_material_create` (status Processing) |
+| Read the text page by page | `Services/PdfTextExtractor.Extract` (PdfPig library), split into pieces of about 1,200 characters with their page number |
+| Store the pieces | `MaterialRepository.AddChunkAsync` → `document_chunks`; then `SetProcessedAsync` → `sp_material_set_processed` (Processed or Failed) |
+| Switch a material on or off as an AI source (Fetch + JSON) | inline script in `Views/Materials/Index.cshtml` → `POST /materials/{id}/source` → `MaterialsController.SetSource` |
+| Delete | `MaterialsController.Delete` → `sp_material_delete` (refused while a quiz or lesson uses it) → `MaterialStorage.Delete` |
+
+### 12.2 Asking a question
+
+| Step | Where |
+|---|---|
+| Chat page: list of chats and the selected chat | `AssistantController.Index` → `AssistantRepository.ListConversationsAsync`, `GetMessagesAsync` (`sp_ai_conversation_get`) → `Views/Assistant/Index.cshtml` |
+| New chat (all materials or one course) | `AssistantController.Create` → `sp_ai_conversation_create` |
+| The browser sends the question as JSON | `wwwroot/js/assistant.js` → `POST /assistant/{id}/ask` |
+| The server checks the question (not empty, ≤ 500 characters), that the chat is the student's, and that AI is allowed | `AssistantController.Ask`, `AssistantRepository.IsAiAllowedAsync` |
+| Limit: 30 questions per hour | `StudyAssistant.AskAsync` → `AssistantRepository.CountRecentQuestionsAsync` |
+| Find the best pages: keyword scoring with a small stemmer | `Services/SourceFinder.FindRelevant` over `MaterialRepository.GetSearchableChunksAsync` |
+| No matching page → honest "not in your materials" answer without calling the AI | `StudyAssistant.AskAsync` (`NotFoundAnswer`) |
+| Otherwise send only those pages to Claude with strict instructions | `StudyAssistant.CallClaudeAsync` → `Services/ClaudeClient.AskAsync` (HTTPS POST to `/v1/messages` with the `x-api-key` and `anthropic-version` headers) |
+| Claude says the pages are not enough (`NOT_IN_MATERIALS`) → honest answer | `StudyAssistant.AskAsync` |
+| Turn `[1]` citations into `[file, p.N]` and keep the cited pages | `StudyAssistant.ReplaceCitations` |
+| Save question, answer and sources | `AssistantRepository.AddMessageAsync` (`sp_ai_message_add`, which also checks the user's AI access) and `AddSourceAsync` (`sp_ai_message_add_source`, only the student's own pages) |
+| Log every AI call, also failed ones | `AssistantRepository.LogUsageAsync` → `ai_usage_logs` |
+| AI errors and time-outs | `ClaudeClient` throws `AiServiceException` with a friendly message; `AssistantController.Ask` returns it as JSON (503), the details go only to the server log |
+
+The API key is read from the configuration (`AI:ApiKey`), normally from `appsettings.Local.json`. Without a key, `ClaudeClient.IsConfigured` is false and the page shows a notice.
+
+---
+
+## Part 13 – Change and reset password (Project #4)
+
+**Owner: Not assigned yet**
+
+| Action | Where |
+|---|---|
+| Change password on the profile page | `Views/Account/Profile.cshtml` (separate form) → `AccountController.ChangePassword`: checks the current password with `BCrypt.Verify`, the rules in `ChangePasswordForm` (`PasswordRules` in `Models/AccountModels.cs`), then `UserRepository.SetPasswordAsync` → `sp_user_set_password` |
+| Ask for a reset link | `AccountController.ForgotPassword` → `UserRepository.CreatePasswordResetAsync` → `sp_password_reset_request` (returns nothing for unknown e-mails; older links stop working) → `Services/DemoEmailSender` writes the e-mail to the terminal. The page is the same for every e-mail. |
+| Open the link | `AccountController.ResetPassword` (GET) → `sp_password_reset_check` → `Views/Account/ResetPassword.cshtml`, or `ResetPasswordInvalid.cshtml` for a used, expired or made-up link |
+| Save the new password | `AccountController.ResetPassword` (POST) → `sp_password_reset_complete` (one use only, 30 minutes, clears failed log-ins, sends a notification) |
+
+---
+
+## Part 14 – Automated tests (Project #4)
+
+**Owner: Not assigned yet**
+
+| File | What it does |
+|---|---|
+| `tests/browser/workflows.test.js` | Project #3 workflows (47 checks) |
+| `tests/browser/moderation.test.js` | reports and moderation (20 checks) |
+| `tests/browser/project4.test.js` | passwords, materials, AI assistant, security, phone and tablet (48 checks) |
+| `tests/browser/fake-claude.js` | a local stand-in for the Claude API used by the tests |
+| `docs/TEST_REPORT.md` / `.pdf` | the test report |
+
