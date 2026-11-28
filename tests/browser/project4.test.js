@@ -25,7 +25,7 @@ async function logout(page) {
 const toast = async page => (await page.textContent('#toast')) || '';
 
 (async () => {
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
 
     // ---- test PDFs made with the browser ----
     const maker = await browser.newPage();

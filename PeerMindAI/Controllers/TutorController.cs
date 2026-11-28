@@ -161,7 +161,12 @@ public class TutorController : BaseController
     public async Task<IActionResult> Profile()
     {
         var form = await _tutors.GetProfileFormAsync(CurrentUserId);
-        return form == null ? NotFound() : View(form);
+        if (form == null)
+        {
+            return NotFound();
+        }
+        form.Courses = await _tutors.GetCoursesAsync(CurrentUserId);
+        return View(form);
     }
 
     [HttpPost("/tutor/profile")]
@@ -180,7 +185,24 @@ public class TutorController : BaseController
                 ModelState.AddModelError("", ex.Message);
             }
         }
+        form.Courses = await _tutors.GetCoursesAsync(CurrentUserId);
         return View(form);
+    }
+
+    /// <summary>Stops teaching a course (FR-07). New courses go through a new tutor application.</summary>
+    [HttpPost("/tutor/courses/{courseId:int}/remove")]
+    public async Task<IActionResult> RemoveCourse(int courseId)
+    {
+        try
+        {
+            await _tutors.RemoveCourseAsync(CurrentUserId, courseId);
+            Toast("The course was removed from your profile.");
+        }
+        catch (DbRuleException ex)
+        {
+            Toast(ex.Message, isError: true);
+        }
+        return RedirectToAction(nameof(Profile));
     }
 
     private async Task<AvailabilityPage> BuildAvailabilityPageAsync(SlotForm form) => new()

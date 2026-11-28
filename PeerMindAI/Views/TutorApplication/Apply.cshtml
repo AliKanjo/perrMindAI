@@ -3,13 +3,23 @@
     ViewData["Title"] = "Tutor application";
     ViewData["Nav"] = "application";
     var existing = Model.Existing;
+    // an approved application is finished: a tutor applying again starts a new one
+    if (existing?.Status == ApplicationStatus.Approved)
+    {
+        existing = null;
+    }
     var savedTranscript = existing is { IsEditable: true }
         ? existing.Documents.FirstOrDefault(d => d.DocumentType == "Transcript")
         : null;
     var transcriptRequired = savedTranscript == null;
 }
 <div class="ph">
-    <div><h1>Tutor application</h1><p>Tell us about your academic background. An administrator reviews every application.</p></div>
+    <div>
+        <h1>@(Model.IsAdditionalCourses ? "Apply to teach more courses" : "Tutor application")</h1>
+        <p>@(Model.IsAdditionalCourses
+                ? "Choose the new courses and upload a current transcript. An administrator checks them before they appear on your profile."
+                : "Tell us about your academic background. An administrator reviews every application.")</p>
+    </div>
 </div>
 
 @if (existing?.Status == ApplicationStatus.InfoRequested)

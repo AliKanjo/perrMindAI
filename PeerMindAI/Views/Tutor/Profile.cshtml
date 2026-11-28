@@ -50,3 +50,25 @@
         </div>
     </div>
 </div>
+
+<div class="card mt" id="tutor-courses">
+    <div class="rowb wrap">
+        <div><h3>Courses you teach</h3><p class="sm sub">Students find you under these courses. New courses are checked by an administrator first.</p></div>
+        <a class="btn btn-sec btn-sm" href="/tutor/application">@Ui.Icon("plus") Apply to teach more courses</a>
+    </div>
+    @if (Model.Courses.Count == 0)
+    {
+        <p class="sm sub mt1">You do not teach any course yet.</p>
+    }
+    @foreach (var course in Model.Courses)
+    {
+        <div class="li">
+            <span class="ico" style="width:34px;height:34px">@Ui.Icon("book", 16)</span>
+            <div class="grow"><div class="b sm">@course.Name</div><div class="xs sub">@course.Code</div></div>
+            <form method="post" action="/tutor/courses/@course.CourseId/remove" data-confirm="Stop teaching @course.Name?">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sec btn-sm">Remove</button>
+            </form>
+        </div>
+    }
+</div>

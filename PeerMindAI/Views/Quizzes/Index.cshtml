@@ -1,0 +1,123 @@
+@model QuizzesPage
+@{
+    ViewData["Title"] = "Practice quizzes";
+    ViewData["Nav"] = "quizzes";
+    var canGenerate = Model.AiConfigured && Model.AiAllowed && Model.Materials.Count > 0;
+}
+<div class="ph">
+    <div><h1>Practice quizzes</h1><p>Test yourself with quizzes the AI writes from your own course materials.</p></div>
+</div>
+
+@if (!Model.AiConfigured)
+{
+    <div class="alert alert-info"><b>The AI features are not configured on this server.</b> You can still take your existing quizzes.</div>
+}
+
+<div class="g21">
+    <div class="card flat" style="align-self:start">
+        <div style="padding:18px 22px"><h3>Your quizzes</h3></div>
+        @if (Model.Quizzes.Count == 0)
+        {
+            <div class="empty">
+                <span class="ico">@Ui.Icon("check", 20)</span>
+                <h3>No quizzes yet</h3>
+                <p class="sm">Generate your first quiz from one of your materials.</p>
+            </div>
+        }
+        else
+        {
+            <table>
+                <thead><tr><th>Quiz</th><th>Questions</th><th>Best score</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var quiz in Model.Quizzes)
+                    {
+                        <tr>
+                            <td>
+                                <b>@quiz.Title</b>
+                                <div class="xs sub">@quiz.CourseName@(quiz.MaterialName == null ? "" : " · " + quiz.MaterialName) · @Ui.Ago(quiz.CreatedAt)</div>
+                            </td>
+                            <td>@quiz.QuestionCount</td>
+                            <td>
+                                @if (quiz.BestScore == null)
+                                {
+                                    <span class="xs sub">Not taken</span>
+                                }
+                                else
+                                {
+                                    @Ui.Badge($"{quiz.BestScore}%", quiz.BestScore >= quiz.PassMark ? "ok" : "warn")
+                                    <div class="xs sub">@quiz.Attempts attempt(s) · pass @quiz.PassMark%</div>
+                                }
+                            </td>
+                            <td>
+                                <div class="row" style="justify-content:flex-end">
+                                    @if (quiz.LastAttemptId != null)
+                                    {
+                                        <a class="btn btn-ghost btn-sm" href="/quizzes/results/@quiz.LastAttemptId">Results</a>
+                                    }
+                                    <form method="post" action="/quizzes/@quiz.QuizId/start">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-pri btn-sm">@(quiz.Attempts == 0 ? "Start" : "Retry")</button>
+                                    </form>
+                                    @if (!quiz.IsRoadmapQuiz)
+                                    {
+                                        <form method="post" action="/quizzes/@quiz.QuizId/delete" data-confirm="Delete this quiz and its results?">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sec btn-sm" aria-label="Delete @quiz.Title">@Ui.Icon("trash", 16)</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="card" style="align-self:start">
+        <h3>Generate a quiz</h3>
+        <p class="sm sub mb">The AI reads the material and writes multiple-choice questions with explanations and page references.</p>
+        <partial name="_FormErrors" />
+        @if (Model.Materials.Count == 0)
+        {
+            <div class="alert alert-info">You need a processed material first. <a class="b" href="/materials">Upload a PDF</a>.</div>
+        }
+        <form method="post" action="/quizzes/generate" novalidate data-validate id="generate-form">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label asp-for="Form.MaterialId"></label>
+                <select asp-for="Form.MaterialId" class="sel in" disabled="@(!canGenerate)"
+                        asp-items="@(new SelectList(Model.Materials.Select(m => new { m.MaterialId, Label = $"{m.FileName} ({m.CourseName})" }), "MaterialId", "Label"))">
+                    <option value="">Choose a material</option>
+                </select>
+                <span asp-validation-for="Form.MaterialId" class="err"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Form.QuestionCount"></label>
+                <select asp-for="Form.QuestionCount" class="sel in" disabled="@(!canGenerate)">
+                    @foreach (var count in new[] { 3, 5, 8, 10 })
+                    {
+                        <option value="@count">@count questions</option>
+                    }
+                </select>
+                <span asp-validation-for="Form.QuestionCount" class="err"></span>
+            </div>
+            <button type="submit" class="btn btn-pri btn-block" disabled="@(!canGenerate)">@Ui.Icon("spark") Generate quiz</button>
+            <p class="xs sub" style="margin-top:8px">This takes a few seconds. You can generate up to @PeerMindAI.Services.QuizGenerator.MaxQuizzesPerHour quizzes per hour.</p>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // show that the AI is working (the button is disabled by site.js after a valid submit)
+        document.getElementById('generate-form').addEventListener('submit', event => {
+            if (!event.defaultPrevented) {
+                setTimeout(() => {
+                    const button = event.target.querySelector('button[type="submit"]');
+                    if (button.classList.contains('spin')) button.textContent = 'The AI is writing your quiz…';
+                });
+            }
+        });
+    </script>
+}

@@ -59,11 +59,43 @@
             }
         </div>
 
+        <div class="card" id="recommendations">
+            <h3>Study recommendations</h3>
+            <p class="sm sub mb">Based on your quiz results</p>
+            @if (Model.Recommendations.Count == 0)
+            {
+                <p class="sm sub">No recommendations right now. <a class="b" style="color:var(--pri)" href="/quizzes">Take a practice quiz</a> to get some.</p>
+            }
+            @foreach (var recommendation in Model.Recommendations)
+            {
+                <div class="li" data-recommendation="@recommendation.RecommendationId">
+                    <span class="ico @(recommendation.Type == "FindTutor" ? "blue" : recommendation.Type == "RetryQuiz" ? "warn" : "")" style="width:34px;height:34px">
+                        @Ui.Icon(recommendation.Type == "FindTutor" ? "users" : recommendation.Type == "RetryQuiz" ? "clock" : "file", 16)
+                    </span>
+                    <div class="grow sm">
+                        @recommendation.Message
+                        <div class="row wrap" style="gap:8px;margin-top:6px">
+                            @if (recommendation.Type == "FindTutor")
+                            {
+                                <a class="b xs" style="color:var(--pri)" href="/tutors?courseId=@recommendation.CourseId">Find a tutor</a>
+                            }
+                            else if (recommendation.AttemptId != null)
+                            {
+                                <a class="b xs" style="color:var(--pri)" href="/quizzes/results/@recommendation.AttemptId">See quiz results</a>
+                            }
+                        </div>
+                    </div>
+                    <button type="button" class="linkbtn" data-dismiss-recommendation title="Dismiss" aria-label="Dismiss recommendation">@Ui.Icon("x", 16)</button>
+                </div>
+            }
+        </div>
+
         <div class="card">
             <h3>AI study assistant</h3>
-            <p class="sm sub mb">Upload your lecture PDFs and ask questions. Answers show the pages they come from.</p>
+            <p class="sm sub mb">Upload your lecture PDFs, ask questions and generate practice quizzes from them.</p>
             <div class="row wrap">
                 <a class="btn btn-pri btn-sm" href="/assistant">@Ui.Icon("bot") Ask a question</a>
+                <a class="btn btn-sec btn-sm" href="/quizzes">@Ui.Icon("check") Practice quiz</a>
                 <a class="btn btn-sec btn-sm" href="/materials">@Ui.Icon("upload") My materials</a>
             </div>
         </div>
@@ -83,3 +115,7 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/recommendations.js" asp-append-version="true"></script>
+}

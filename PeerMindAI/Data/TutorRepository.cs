@@ -112,6 +112,22 @@ public class TutorRepository
             Database.In("p_accept_same_day", form.AcceptSameDay),
             Database.In("p_buffer_minutes", null));
 
+    // ---------- courses ----------
+
+    public Task<List<CourseOption>> GetCoursesAsync(int tutorId) =>
+        _db.QuerySqlAsync(
+            @"SELECT c.course_id, c.code, c.name
+              FROM tutor_courses tc JOIN courses c ON c.course_id = tc.course_id
+              WHERE tc.tutor_id = @tutor_id ORDER BY c.name",
+            r => new CourseOption { CourseId = r.Int("course_id"), Code = r.Text("code"), Name = r.Text("name") },
+            Database.In("@tutor_id", tutorId));
+
+    /// <summary>Stops teaching a course; refused for the last course or while sessions for it are upcoming.</summary>
+    public Task RemoveCourseAsync(int tutorId, int courseId) =>
+        _db.ExecuteProcedureAsync("sp_tutor_remove_course",
+            Database.In("p_tutor_id", tutorId),
+            Database.In("p_course_id", courseId));
+
     // ---------- availability ----------
 
     /// <summary>The tutor's future slots, with the booking that occupies each one (if any).</summary>

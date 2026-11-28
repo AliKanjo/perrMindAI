@@ -609,6 +609,25 @@ BEGIN
    WHERE user_id = p_tutor_id;
 END$$
 
+-- Courses a tutor teaches (FR-07). New courses are added only through an approved
+-- tutor application, so every course stays verified; a tutor can stop teaching a course.
+DROP PROCEDURE IF EXISTS sp_tutor_remove_course$$
+CREATE PROCEDURE sp_tutor_remove_course(IN p_tutor_id INT, IN p_course_id INT)
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM tutor_courses WHERE tutor_id = p_tutor_id AND course_id = p_course_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You do not teach this course.';
+  END IF;
+  IF (SELECT COUNT(*) FROM tutor_courses WHERE tutor_id = p_tutor_id) = 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A tutor must teach at least one course.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM bookings WHERE tutor_id = p_tutor_id AND course_id = p_course_id
+             AND status IN ('Pending','Confirmed')) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'You have upcoming sessions for this course. Finish or cancel them before removing it.';
+  END IF;
+  DELETE FROM tutor_courses WHERE tutor_id = p_tutor_id AND course_id = p_course_id;
+END$$
+
 -- =====================================================================
 -- AVAILABILITY  (FR-07)
 -- =====================================================================
@@ -1346,6 +1365,18 @@ BEGIN
     WHERE aa.attempt_id = p_attempt_id AND aa.is_correct = 0
     GROUP BY q.topic_id, t.name;
 
+    -- missed questions without a course topic: point to the pages of the material instead
+    INSERT INTO study_recommendations (student_id, attempt_id, course_id, material_id, recommendation_type, message)
+    SELECT p_student_id, p_attempt_id, v_course_id, m.material_id, 'ReviewMaterial',
+           CONCAT('Review "', m.file_name, '"',
+                  IFNULL(CONCAT(' (p. ', GROUP_CONCAT(DISTINCT q.source_page ORDER BY q.source_page SEPARATOR ', '), ')'), ''),
+                  ' - you missed ', COUNT(*), ' question(s) from it.')
+    FROM attempt_answers aa
+    JOIN quiz_questions q     ON q.question_id = aa.question_id
+    JOIN course_materials m   ON m.material_id = q.source_material_id
+    WHERE aa.attempt_id = p_attempt_id AND aa.is_correct = 0 AND q.topic_id IS NULL
+    GROUP BY m.material_id, m.file_name;
+
     IF v_passed = 0 THEN
       INSERT INTO study_recommendations (student_id, attempt_id, course_id, recommendation_type, message)
       VALUES (p_student_id, p_attempt_id, v_course_id, 'RetryQuiz',
@@ -1366,6 +1397,66 @@ BEGIN
   COMMIT;
 
   CALL sp_quiz_get_result(p_attempt_id, p_student_id);
+END$$
+
+-- AI quiz generation (FR-10). The application asks the AI for questions about one
+-- of the student's materials, checks them, then stores them with these procedures.
+DROP PROCEDURE IF EXISTS sp_quiz_create$$
+CREATE PROCEDURE sp_quiz_create(IN p_student_id INT, IN p_material_id INT, IN p_title VARCHAR(150), OUT p_new_quiz_id INT)
+BEGIN
+  DECLARE v_course_id INT DEFAULT NULL;
+  DECLARE v_pass_mark TINYINT DEFAULT IFNULL(CAST(fn_setting('QuizPassingThresholdPercent') AS UNSIGNED), 75);
+
+  SELECT course_id INTO v_course_id FROM course_materials
+  WHERE material_id = p_material_id AND uploaded_by = p_student_id AND processing_status = 'Processed';
+  IF v_course_id IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Please choose one of your processed materials.';
+  END IF;
+
+  INSERT INTO quizzes (student_id, course_id, material_id, title, pass_mark_percent, generated_by_ai)
+  VALUES (p_student_id, v_course_id, p_material_id, p_title, v_pass_mark, 1);
+  SET p_new_quiz_id = LAST_INSERT_ID();
+END$$
+
+DROP PROCEDURE IF EXISTS sp_quiz_add_question$$
+CREATE PROCEDURE sp_quiz_add_question(
+  IN p_quiz_id INT, IN p_student_id INT, IN p_question_number INT, IN p_question_text VARCHAR(1000),
+  IN p_explanation VARCHAR(1000), IN p_topic_id INT, IN p_source_page INT, OUT p_new_question_id INT)
+BEGIN
+  DECLARE v_material_id INT DEFAULT NULL;
+  SELECT material_id INTO v_material_id FROM quizzes WHERE quiz_id = p_quiz_id AND student_id = p_student_id;
+  IF v_material_id IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Quiz not found.';
+  END IF;
+
+  INSERT INTO quiz_questions (quiz_id, question_number, question_text, explanation, topic_id, source_material_id, source_page)
+  VALUES (p_quiz_id, p_question_number, p_question_text, p_explanation, p_topic_id, v_material_id, p_source_page);
+  SET p_new_question_id = LAST_INSERT_ID();
+END$$
+
+DROP PROCEDURE IF EXISTS sp_quiz_add_option$$
+CREATE PROCEDURE sp_quiz_add_option(IN p_question_id INT, IN p_label CHAR(1), IN p_option_text VARCHAR(500), IN p_is_correct TINYINT)
+BEGIN
+  INSERT INTO quiz_options (question_id, label, option_text, is_correct)
+  VALUES (p_question_id, p_label, p_option_text, p_is_correct);
+END$$
+
+-- DELETE: a student removes one of their quizzes (attempts and answers cascade)
+DROP PROCEDURE IF EXISTS sp_quiz_delete$$
+CREATE PROCEDURE sp_quiz_delete(IN p_student_id INT, IN p_quiz_id INT)
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+  IF NOT EXISTS (SELECT 1 FROM quizzes WHERE quiz_id = p_quiz_id AND student_id = p_student_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Quiz not found.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM quizzes WHERE quiz_id = p_quiz_id AND section_id IS NOT NULL) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Roadmap section quizzes cannot be deleted.';
+  END IF;
+
+  START TRANSACTION;
+    DELETE r FROM study_recommendations r JOIN quiz_attempts a ON a.attempt_id = r.attempt_id WHERE a.quiz_id = p_quiz_id;
+    DELETE FROM quizzes WHERE quiz_id = p_quiz_id;
+  COMMIT;
 END$$
 
 -- Quiz results page: score, answer review with explanations, recommendations

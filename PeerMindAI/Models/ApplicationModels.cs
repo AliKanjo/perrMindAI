@@ -95,6 +95,8 @@ public class TutorApplicationPage
     public List<Course> Courses { get; set; } = new();
     public TutorApplication? Existing { get; set; }
     public decimal MinimumGpa { get; set; } = 3.0m;
+    /// <summary>An approved tutor is applying to teach more courses.</summary>
+    public bool IsAdditionalCourses { get; set; }
 }
 
 /// <summary>Admin page: the list on the left and the selected application on the right.</summary>
@@ -130,4 +132,53 @@ public class AuditEntry
     public string? Details { get; set; }
     public string? AdminName { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>Admin "AI usage" page (FR-13).</summary>
+public class AiUsagePage
+{
+    public AiUsageTotals Today { get; set; } = new();
+    public AiUsageTotals Last7Days { get; set; } = new();
+    public AiUsageTotals Last30Days { get; set; } = new();
+    public List<AiUsageRow> ByFeature { get; set; } = new();
+    public List<AiUsageDay> Days { get; set; } = new();
+    public List<AiUsageRow> TopUsers { get; set; } = new();
+    public List<AiUsageFailure> RecentFailures { get; set; } = new();
+    public string Provider { get; set; } = "";
+    public string Model { get; set; } = "";
+    public bool Configured { get; set; }
+}
+
+public class AiUsageTotals
+{
+    public int Requests { get; set; }
+    public int Failed { get; set; }
+    public long Tokens { get; set; }
+    public int? AverageLatencyMs { get; set; }
+
+    public double FailureRate => Requests == 0 ? 0 : 100.0 * Failed / Requests;
+}
+
+public class AiUsageRow
+{
+    public string Label { get; set; } = "";
+    public int Requests { get; set; }
+    public int Failed { get; set; }
+    public long Tokens { get; set; }
+    public int? AverageLatencyMs { get; set; }
+}
+
+public class AiUsageDay
+{
+    public DateTime Day { get; set; }
+    public int Requests { get; set; }
+    public int Failed { get; set; }
+}
+
+public class AiUsageFailure
+{
+    public DateTime CreatedAt { get; set; }
+    public string UserName { get; set; } = "";
+    public string Feature { get; set; } = "";
+    public string? Error { get; set; }
 }

@@ -16,7 +16,7 @@ const logout = async page => { await page.goto(BASE + '/notifications'); await p
 const toast = async page => (await page.textContent('#toast')) || '';
 
 (async () => {
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
     const page = await (await browser.newContext({ viewport: { width: 1366, height: 850 } })).newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));

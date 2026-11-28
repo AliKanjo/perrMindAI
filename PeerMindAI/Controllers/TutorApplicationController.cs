@@ -16,14 +16,16 @@ public class TutorApplicationController : BaseController
     private readonly CourseRepository _courses;
     private readonly UserRepository _users;
     private readonly TranscriptStorage _storage;
+    private readonly TutorRepository _tutors;
 
     public TutorApplicationController(ApplicationRepository applications, CourseRepository courses,
-        UserRepository users, TranscriptStorage storage)
+        UserRepository users, TranscriptStorage storage, TutorRepository tutors)
     {
         _applications = applications;
         _courses = courses;
         _users = users;
         _storage = storage;
+        _tutors = tutors;
     }
 
     /// <summary>Status page: pending, approved, rejected or "not applied yet".</summary>
@@ -43,7 +45,7 @@ public class TutorApplicationController : BaseController
         }
 
         var form = new TutorApplicationForm();
-        if (existing != null)
+        if (existing != null && existing.Status != ApplicationStatus.Approved)
         {
             // start from the previous answers (a draft, a "more info" request or a rejected application)
             form.UniversityId = existing.UniversityId;
@@ -53,6 +55,16 @@ public class TutorApplicationController : BaseController
             form.YearOfStudy = existing.YearOfStudy;
             form.Bio = existing.Bio ?? "";
             form.CourseIds = existing.Courses.Select(c => c.CourseId).ToList();
+        }
+        else if (existing != null)
+        {
+            // an approved tutor applying for more courses: keep the academic details, choose new courses
+            form.UniversityId = existing.UniversityId;
+            form.Degree = existing.Degree ?? "";
+            form.Major = existing.Major ?? "";
+            form.Gpa = existing.Gpa;
+            form.YearOfStudy = existing.YearOfStudy;
+            form.Bio = existing.Bio ?? "";
         }
         else
         {
@@ -73,6 +85,8 @@ public class TutorApplicationController : BaseController
         }
 
         var editable = existing is { IsEditable: true } ? existing : null;
+        var taught = await GetTaughtCourseIdsAsync();
+        form.CourseIds = form.CourseIds.Where(id => !taught.Contains(id)).ToList();
         var minimumGpa = await GetMinimumGpaAsync();
 
         // rules that the data annotations cannot express
@@ -137,9 +151,13 @@ public class TutorApplicationController : BaseController
         return View(await BuildPageAsync(form, existing));
     }
 
-    /// <summary>A pending or approved application cannot be edited.</summary>
-    private static bool IsLocked(TutorApplication? application) =>
-        application?.Status is ApplicationStatus.Pending or ApplicationStatus.Approved;
+    /// <summary>
+    /// A pending application cannot be changed. An approved one is final for a student, but an
+    /// approved tutor may send a new application to teach more courses (FR-07).
+    /// </summary>
+    private bool IsLocked(TutorApplication? application) =>
+        application?.Status == ApplicationStatus.Pending
+        || (application?.Status == ApplicationStatus.Approved && !User.IsInRole(Roles.Tutor));
 
     private async Task<decimal> GetMinimumGpaAsync()
     {
@@ -148,12 +166,23 @@ public class TutorApplicationController : BaseController
             System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : 3.0m;
     }
 
-    private async Task<TutorApplicationPage> BuildPageAsync(TutorApplicationForm form, TutorApplication? existing) => new()
+    /// <summary>Courses the user already teaches (empty for students); they are not offered again.</summary>
+    private async Task<HashSet<int>> GetTaughtCourseIdsAsync() =>
+        User.IsInRole(Roles.Tutor)
+            ? (await _tutors.GetCoursesAsync(CurrentUserId)).Select(c => c.CourseId).ToHashSet()
+            : new HashSet<int>();
+
+    private async Task<TutorApplicationPage> BuildPageAsync(TutorApplicationForm form, TutorApplication? existing)
     {
-        Form = form,
-        Existing = existing,
-        Universities = await _users.GetUniversitiesAsync(),
-        Courses = await _courses.ListAsync(null, includeInactive: false),
-        MinimumGpa = await GetMinimumGpaAsync()
-    };
+        var taught = await GetTaughtCourseIdsAsync();
+        return new TutorApplicationPage
+        {
+            Form = form,
+            Existing = existing,
+            Universities = await _users.GetUniversitiesAsync(),
+            Courses = (await _courses.ListAsync(null, includeInactive: false)).Where(c => !taught.Contains(c.CourseId)).ToList(),
+            MinimumGpa = await GetMinimumGpaAsync(),
+            IsAdditionalCourses = taught.Count > 0
+        };
+    }
 }

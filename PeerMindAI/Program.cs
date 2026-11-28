@@ -28,9 +28,12 @@ builder.Services.AddSingleton<AssistantRepository>();
 builder.Services.AddSingleton<MaterialStorage>();
 builder.Services.AddSingleton<PdfTextExtractor>();
 builder.Services.AddScoped<StudyAssistant>();
+builder.Services.AddSingleton<QuizRepository>();
+builder.Services.AddSingleton<AiUsageRepository>();
+builder.Services.AddScoped<QuizGenerator>();
 
-// AI study assistant: HttpClient for the Claude API (settings in the "AI" configuration section)
-builder.Services.AddHttpClient<ClaudeClient>();
+// AI features: HttpClient for the AI provider, Anthropic (Claude) or Groq (settings in the "AI" section)
+builder.Services.AddHttpClient<AiClient>();
 builder.Services.AddScoped<SessionUserValidator>();
 
 // cookie log-in with roles (Student, Tutor, Admin)

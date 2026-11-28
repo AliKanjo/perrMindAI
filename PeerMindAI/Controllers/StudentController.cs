@@ -12,11 +12,13 @@ public class StudentController : BaseController
 {
     private readonly BookingRepository _bookings;
     private readonly ApplicationRepository _applications;
+    private readonly QuizRepository _quizzes;
 
-    public StudentController(BookingRepository bookings, ApplicationRepository applications)
+    public StudentController(BookingRepository bookings, ApplicationRepository applications, QuizRepository quizzes)
     {
         _bookings = bookings;
         _applications = applications;
+        _quizzes = quizzes;
     }
 
     [HttpGet("/student")]
@@ -31,7 +33,8 @@ public class StudentController : BaseController
             ToReview = bookings.Where(b => b.Status == BookingStatus.Completed && b.ReviewId == null).ToList(),
             CompletedSessions = bookings.Count(b => b.Status == BookingStatus.Completed),
             PendingRequests = bookings.Count(b => b.Status == BookingStatus.Pending),
-            Application = await _applications.GetLatestForApplicantAsync(CurrentUserId)
+            Application = await _applications.GetLatestForApplicantAsync(CurrentUserId),
+            Recommendations = await _quizzes.GetOpenRecommendationsAsync(CurrentUserId)
         };
         return View(dashboard);
     }

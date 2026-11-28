@@ -1,0 +1,77 @@
+@model QuizResult
+@{
+    ViewData["Title"] = "Quiz results";
+    ViewData["Nav"] = "quizzes";
+    var correct = Model.Answers.Count(a => a.IsCorrect);
+}
+<a class="sm b row mb" style="color:var(--pri)" href="/quizzes">@Ui.Icon("left") Back to quizzes</a>
+<div class="ph">
+    <div><h1>Quiz results</h1><p>@Model.Title</p></div>
+</div>
+
+<div class="card c" style="padding:36px">
+    <div style="font-size:56px;font-weight:800;color:@(Model.Passed ? "var(--ok)" : "var(--bad)")">@Model.Score%</div>
+    <h2>@(Model.Passed ? "You passed! 🎉" : "Not quite there yet")</h2>
+    <p class="sub mt1">@correct of @Model.Answers.Count correct · pass mark is @Model.PassMark%</p>
+    <div class="row wrap" style="justify-content:center;margin-top:20px">
+        <form method="post" action="/quizzes/@Model.QuizId/start">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-pri">@(Model.Passed ? "Take it again" : "Review & retry")</button>
+        </form>
+        <a class="btn btn-sec" href="/quizzes">All quizzes</a>
+    </div>
+</div>
+
+@if (Model.Recommendations.Count > 0)
+{
+    <div class="card mt">
+        <h3>What to do next</h3>
+        <p class="sm sub mb">Based on the questions you missed.</p>
+        @foreach (var recommendation in Model.Recommendations)
+        {
+            <div class="li">
+                <span class="ico @(recommendation.Type == "FindTutor" ? "blue" : recommendation.Type == "RetryQuiz" ? "warn" : "")">
+                    @Ui.Icon(recommendation.Type == "FindTutor" ? "users" : recommendation.Type == "RetryQuiz" ? "clock" : "file")
+                </span>
+                <div class="grow sm">@recommendation.Message</div>
+                @switch (recommendation.Type)
+                {
+                    case "FindTutor":
+                        <a class="btn btn-sec btn-sm" href="/tutors?courseId=@Model.CourseId">Find a tutor</a>
+                        break;
+                    case "ReviewMaterial":
+                        <a class="btn btn-sec btn-sm" href="/assistant">Ask the AI</a>
+                        break;
+                }
+            </div>
+        }
+    </div>
+}
+
+<h2 class="mt mb">Answer review</h2>
+<div class="col">
+    @foreach (var answer in Model.Answers)
+    {
+        <div class="card">
+            <div class="row">
+                <span class="ico @(answer.IsCorrect ? "ok" : "bad")">@Ui.Icon(answer.IsCorrect ? "check" : "x")</span>
+                <h3 style="margin:0">@answer.Number. @answer.Question</h3>
+            </div>
+            <div class="col" style="margin-top:12px;gap:8px">
+                <div class="opt @(answer.IsCorrect ? "right" : "wrong")" style="cursor:default">Your answer: @answer.YourAnswer</div>
+                @if (!answer.IsCorrect)
+                {
+                    <div class="opt right" style="cursor:default">Correct answer: @answer.CorrectAnswer</div>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(answer.Explanation))
+            {
+                <p class="sm" style="margin-top:12px;background:#F8FAFC;padding:12px;border-radius:10px"><b>Why:</b> @answer.Explanation</p>
+            }
+            @if (answer.SourceFile != null)
+            {
+                <p class="xs sub" style="margin-top:8px">@Ui.Icon("file", 14) Source: @answer.SourceFile@(answer.SourcePage == null ? "" : $", p.{answer.SourcePage}")</p>
+            }
+        </div>
+    }
+</div>

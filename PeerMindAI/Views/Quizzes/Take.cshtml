@@ -1,0 +1,63 @@
+@model QuizAttemptPage
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["Nav"] = "quizzes";
+    var answers = ViewBag.Answers as Dictionary<int, int> ?? new Dictionary<int, int>();
+}
+<div style="max-width:780px;margin:0 auto">
+    <a class="sm b row mb" style="color:var(--pri)" href="/quizzes">@Ui.Icon("left") Back to quizzes</a>
+    <div class="ph">
+        <div><h1>@Model.Title</h1><p>@Model.Questions.Count questions · pass mark @Model.PassMark%</p></div>
+    </div>
+
+    <div class="rowb sm mb"><b id="progress-text">0 of @Model.Questions.Count answered</b></div>
+    <div class="pg mb"><i id="progress-bar" style="width:0%"></i></div>
+
+    <partial name="_FormErrors" />
+    <form method="post" action="/quizzes/attempts/@Model.AttemptId" novalidate data-validate id="quiz-form">
+        @Html.AntiForgeryToken()
+        <div class="col">
+            @foreach (var question in Model.Questions)
+            {
+                <fieldset class="card" style="border:1px solid var(--bd)">
+                    <legend class="sr-only">Question @question.Number</legend>
+                    <h3 style="margin-bottom:14px">@question.Number. @question.Text</h3>
+                    <div class="col" style="gap:8px">
+                        @foreach (var option in question.Options)
+                        {
+                            <label class="opt">
+                                <input type="radio" name="answers[@question.QuestionId]" value="@option.OptionId" class="hide"
+                                       checked="@(answers.TryGetValue(question.QuestionId, out var chosen) && chosen == option.OptionId)"
+                                       data-val="true" data-val-required="Please choose an answer.">
+                                <span class="lt">@option.Label</span>@option.Text
+                            </label>
+                        }
+                    </div>
+                    <span class="err" data-valmsg-for="answers[@question.QuestionId]"></span>
+                </fieldset>
+            }
+        </div>
+        <div class="rowb mt">
+            <a class="btn btn-sec" href="/quizzes">Cancel</a>
+            <button type="submit" class="btn btn-pri btn-lg">Submit quiz</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // progress bar: how many questions have an answer
+        (function () {
+            const { $, $$ } = window.PeerMind;
+            const form = $('#quiz-form');
+            const total = $$('fieldset', form).length;
+            function update() {
+                const answered = $$('fieldset', form).filter(set => $('input:checked', set)).length;
+                $('#progress-text').textContent = `${answered} of ${total} answered`;
+                $('#progress-bar').style.width = (answered / total * 100) + '%';
+            }
+            form.addEventListener('change', update);
+            update();
+        })();
+    </script>
+}

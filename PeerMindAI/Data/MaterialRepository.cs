@@ -96,6 +96,23 @@ public class MaterialRepository
             Database.In("p_student_id", studentId),
             Database.In("p_material_id", materialId));
 
+    /// <summary>All text pieces of one material owned by the student, in order (for quiz generation).</summary>
+    public Task<List<SourceChunk>> GetChunksOfMaterialAsync(int studentId, int materialId) =>
+        _db.QuerySqlAsync(
+            @"SELECT ch.chunk_id, m.file_name, ch.page_number, ch.content
+              FROM document_chunks ch JOIN course_materials m ON m.material_id = ch.material_id
+              WHERE m.material_id = @material_id AND m.uploaded_by = @student_id
+              ORDER BY ch.chunk_index",
+            r => new SourceChunk
+            {
+                ChunkId = r.Int("chunk_id"),
+                FileName = r.Text("file_name"),
+                PageNumber = r.IntOrNull("page_number"),
+                Content = r.Text("content")
+            },
+            Database.In("@material_id", materialId),
+            Database.In("@student_id", studentId));
+
     /// <summary>
     /// The text the assistant may search: processed materials of this student that are
     /// switched on as AI sources, optionally limited to one course.

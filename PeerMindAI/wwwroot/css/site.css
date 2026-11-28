@@ -189,3 +189,9 @@ label.chip:has(input:checked){background:var(--priS);border-color:var(--pri);col
   .card.row.wrap>.grow{flex:1 1 calc(100% - 70px)}
   .bubble{max-width:92%}
 }
+/* quizzes */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+fieldset.card{min-width:0}
+label.opt{cursor:pointer}
+label.opt:has(input:checked){border-color:var(--pri);background:var(--priS)}
+label.opt:has(input:checked) .lt{background:var(--pri);color:#fff}

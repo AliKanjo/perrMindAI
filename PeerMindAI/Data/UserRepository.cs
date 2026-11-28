@@ -108,6 +108,15 @@ public class UserRepository
             Database.In("p_role", null),
             Database.In("p_ai_access", null));
 
+    /// <summary>Admin: turn the AI features on or off for one user (the status stays as it is).</summary>
+    public Task SetAiAccessAsync(int adminId, int userId, string currentStatus, bool enabled) =>
+        _db.ExecuteProcedureAsync("sp_user_set_status",
+            Database.In("p_admin_id", adminId),
+            Database.In("p_user_id", userId),
+            Database.In("p_status", currentStatus),
+            Database.In("p_role", null),
+            Database.In("p_ai_access", enabled));
+
     /// <summary>Admin: delete an account that has no activity (the procedure refuses otherwise).</summary>
     public Task DeleteAsync(int adminId, int userId) =>
         _db.ExecuteProcedureAsync("sp_user_delete",
@@ -271,6 +280,7 @@ public class UserRepository
         UniversityId = r.IntOrNull("university_id"),
         University = r.TextOrNull("university"),
         EmailVerified = r.Bool("email_verified"),
+        AiAccessEnabled = r.Bool("ai_access_enabled"),
         CreatedAt = r.Date("created_at"),
         LastActiveAt = r.DateOrNull("last_active_at"),
         Department = r.TextOrNull("department"),

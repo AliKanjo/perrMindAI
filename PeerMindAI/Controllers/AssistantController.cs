@@ -18,17 +18,17 @@ public class AssistantController : BaseController
     private readonly CourseRepository _courses;
     private readonly UserRepository _users;
     private readonly StudyAssistant _studyAssistant;
-    private readonly ClaudeClient _claude;
+    private readonly AiClient _ai;
 
     public AssistantController(AssistantRepository assistant, MaterialRepository materials, CourseRepository courses,
-        UserRepository users, StudyAssistant studyAssistant, ClaudeClient claude)
+        UserRepository users, StudyAssistant studyAssistant, AiClient ai)
     {
         _assistant = assistant;
         _materials = materials;
         _courses = courses;
         _users = users;
         _studyAssistant = studyAssistant;
-        _claude = claude;
+        _ai = ai;
     }
 
     /// <summary>Chat list on the left, the selected chat on the right.</summary>
@@ -50,7 +50,7 @@ public class AssistantController : BaseController
             Messages = selected == null ? new() : await _assistant.GetMessagesAsync(selected.ConversationId, CurrentUserId),
             Courses = await _courses.ListAsync(null, includeInactive: false),
             UsableMaterials = materials.Count(m => m.ProcessingStatus == "Processed" && m.UseAsAiSource),
-            AiConfigured = _claude.IsConfigured,
+            AiConfigured = _ai.IsConfigured,
             AiAllowed = await _assistant.IsAiAllowedAsync(CurrentUserId),
             Disclaimer = await _users.GetSettingAsync("AiDisclaimer")
                          ?? "AI-generated answers may contain errors. Check them against the referenced course materials."

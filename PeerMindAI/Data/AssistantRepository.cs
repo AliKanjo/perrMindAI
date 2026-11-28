@@ -93,21 +93,23 @@ public class AssistantRepository
     }
 
     /// <summary>How many questions the user asked in the last hour (to limit the cost).</summary>
-    public async Task<int> CountRecentQuestionsAsync(int userId)
+    public async Task<int> CountRecentQuestionsAsync(int userId, string feature = "StudyAssistant")
     {
         var rows = await _db.QuerySqlAsync(
             @"SELECT COUNT(*) AS recent FROM ai_usage_logs
-              WHERE user_id = @user_id AND feature = 'StudyAssistant' AND created_at > NOW() - INTERVAL 1 HOUR",
-            r => r.Int("recent"), Database.In("@user_id", userId));
+              WHERE user_id = @user_id AND feature = @feature AND created_at > NOW() - INTERVAL 1 HOUR",
+            r => r.Int("recent"), Database.In("@user_id", userId), Database.In("@feature", feature));
         return rows.FirstOrDefault();
     }
 
     /// <summary>Records one call to the AI service (also failed ones) for the usage log.</summary>
-    public Task LogUsageAsync(int userId, string model, int inputTokens, int outputTokens, int latencyMs, bool succeeded, string? error) =>
+    public Task LogUsageAsync(int userId, string model, int inputTokens, int outputTokens, int latencyMs, bool succeeded,
+        string? error, string feature = "StudyAssistant") =>
         _db.ExecuteSqlAsync(
             @"INSERT INTO ai_usage_logs (user_id, feature, model, input_tokens, output_tokens, latency_ms, succeeded, error_message)
-              VALUES (@user_id, 'StudyAssistant', @model, @input_tokens, @output_tokens, @latency_ms, @succeeded, @error)",
+              VALUES (@user_id, @feature, @model, @input_tokens, @output_tokens, @latency_ms, @succeeded, @error)",
             Database.In("@user_id", userId),
+            Database.In("@feature", feature),
             Database.In("@model", model),
             Database.In("@input_tokens", inputTokens),
             Database.In("@output_tokens", outputTokens),

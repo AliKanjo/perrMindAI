@@ -60,6 +60,17 @@
                         <button type="button" class="btn btn-bad" data-modal="suspend-modal">Suspend</button>
                     }
                 </div>
+                <div class="rowb" style="padding:12px 0;border-bottom:1px solid #EEF1F6">
+                    <div>
+                        <div class="b sm">AI features @(Model.AiAccessEnabled ? Ui.Badge("On", "ok") : Ui.Badge("Off", "gray"))</div>
+                        <div class="xs sub">AI study assistant and practice quiz generation.</div>
+                    </div>
+                    <form method="post" action="/admin/users/@Model.UserId/ai-access">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="enabled" value="@(Model.AiAccessEnabled ? "false" : "true")">
+                        <button type="submit" class="btn btn-sec">@(Model.AiAccessEnabled ? "Turn off" : "Turn on")</button>
+                    </form>
+                </div>
                 <div class="rowb" style="padding:12px 0">
                     <div>
                         <div class="b sm">Delete account</div>

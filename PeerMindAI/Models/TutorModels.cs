@@ -88,6 +88,9 @@ public class TutorProfileForm
 
     [Display(Name = "Accept same-day bookings")]
     public bool AcceptSameDay { get; set; }
+
+    /// <summary>The courses the tutor teaches; shown on the page, never posted back.</summary>
+    public List<CourseOption> Courses { get; set; } = new();
 }
 
 /// <summary>The "Add availability" form on the tutor availability page.</summary>

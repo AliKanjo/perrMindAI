@@ -1,0 +1,117 @@
+@model AiUsagePage
+@{
+    ViewData["Title"] = "AI usage";
+    ViewData["Nav"] = "aiusage";
+    var maxPerDay = Math.Max(1, Model.Days.Max(d => d.Requests));
+
+    static string Tokens(long tokens) => tokens >= 1_000_000 ? $"{tokens / 1_000_000.0:0.#}M" : tokens >= 1000 ? $"{tokens / 1000.0:0.#}k" : tokens.ToString();
+    static string Latency(int? ms) => ms == null ? "—" : ms >= 1000 ? $"{ms / 1000.0:0.0} s" : $"{ms} ms";
+    static string FeatureName(string feature) => feature switch
+    {
+        "StudyAssistant" => "AI study assistant",
+        "QuizGenerator" => "Practice quiz generator",
+        "RoadmapGenerator" => "Roadmap generator",
+        "DocumentProcessing" => "Document processing",
+        _ => feature
+    };
+}
+<div class="ph">
+    <div><h1>AI usage monitoring</h1><p>Requests, token consumption and service health of the AI features.</p></div>
+    <div class="row wrap">
+        @Ui.Badge(Model.Configured ? $"{Model.Provider} · {Model.Model}" : "AI not configured", Model.Configured ? "ok" : "warn")
+    </div>
+</div>
+
+<div class="g4">
+    <div class="card row"><span class="ico">@Ui.Icon("bot", 20)</span><div class="stat"><span class="n">@Model.Today.Requests</span><span class="l">Requests today</span></div></div>
+    <div class="card row"><span class="ico blue">@Ui.Icon("spark", 20)</span><div class="stat"><span class="n">@Tokens(Model.Last30Days.Tokens)</span><span class="l">Tokens (30 days)</span></div></div>
+    <div class="card row"><span class="ico warn">@Ui.Icon("clock", 20)</span><div class="stat"><span class="n">@Latency(Model.Last30Days.AverageLatencyMs)</span><span class="l">Average answer time</span></div></div>
+    <div class="card row"><span class="ico @(Model.Last30Days.FailureRate > 5 ? "bad" : "ok")">@Ui.Icon(Model.Last30Days.FailureRate > 5 ? "x" : "check", 20)</span><div class="stat"><span class="n">@Model.Last30Days.FailureRate.ToString("0.#")%</span><span class="l">Failed requests (30 days)</span></div></div>
+</div>
+
+<div class="g21 mt">
+    <div class="card">
+        <div class="rowb"><h3>Requests per day</h3>@Ui.Badge("Last 14 days", "gray")</div>
+        @if (Model.Last30Days.Requests == 0)
+        {
+            <p class="sm sub mt1">No AI requests yet.</p>
+        }
+        <div class="bars" role="img" aria-label="Requests per day for the last 14 days">
+            @foreach (var day in Model.Days)
+            {
+                <div title="@day.Day.ToString("d MMM"): @day.Requests request(s), @day.Failed failed">
+                    <span class="b" style="color:var(--tx)">@(day.Requests == 0 ? "" : day.Requests.ToString())</span>
+                    <i style="height:@(day.Requests * 100 / maxPerDay)%;min-height:@(day.Requests > 0 ? 3 : 0)px"></i>
+                    @day.Day.ToString("dd")
+                </div>
+            }
+        </div>
+    </div>
+    <div class="card">
+        <h3>Most active users</h3>
+        <p class="sm sub mb">Last 30 days</p>
+        @if (Model.TopUsers.Count == 0)
+        {
+            <p class="sm sub">No AI requests yet.</p>
+        }
+        @foreach (var user in Model.TopUsers)
+        {
+            <div class="li">
+                @Ui.Avatar(user.Label, 34)
+                <div class="grow"><div class="b sm">@user.Label</div><div class="xs sub">@Tokens(user.Tokens) tokens@(user.Failed > 0 ? $" · {user.Failed} failed" : "")</div></div>
+                <b>@user.Requests</b>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card flat mt">
+    <div style="padding:18px 22px"><h3>By feature</h3><p class="sm sub">Last 30 days</p></div>
+    @if (Model.ByFeature.Count == 0)
+    {
+        <p class="sm sub" style="padding:0 22px 20px">No AI requests yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Feature</th><th>Requests</th><th>Tokens</th><th>Average time</th><th>Failed</th></tr></thead>
+            <tbody>
+                @foreach (var row in Model.ByFeature)
+                {
+                    <tr>
+                        <td><b>@FeatureName(row.Label)</b></td>
+                        <td>@row.Requests</td>
+                        <td>@Tokens(row.Tokens)</td>
+                        <td>@Latency(row.AverageLatencyMs)</td>
+                        <td>@(row.Failed == 0 ? Ui.Badge("0", "ok") : Ui.Badge(row.Failed.ToString(), "bad"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="card flat mt">
+    <div style="padding:18px 22px"><h3>Recent failures</h3></div>
+    @if (Model.RecentFailures.Count == 0)
+    {
+        <p class="sm sub" style="padding:0 22px 20px">No failed requests.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>When</th><th>User</th><th>Feature</th><th>Error</th></tr></thead>
+            <tbody>
+                @foreach (var failure in Model.RecentFailures)
+                {
+                    <tr>
+                        <td class="sm sub">@Ui.Ago(failure.CreatedAt)</td>
+                        <td>@failure.UserName</td>
+                        <td>@FeatureName(failure.Feature)</td>
+                        <td class="sm">@(failure.Error ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

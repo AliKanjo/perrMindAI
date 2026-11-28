@@ -21,7 +21,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png
 const toastText = async page => (await page.textContent('#toast')) || '';
 
 (async () => {
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 850 } });
     const page = await ctx.newPage();
     const errors = [];

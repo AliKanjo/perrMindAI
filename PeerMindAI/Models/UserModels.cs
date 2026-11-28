@@ -39,6 +39,7 @@ public class UserProfile
     public int? UniversityId { get; set; }
     public string? University { get; set; }
     public bool EmailVerified { get; set; }
+    public bool AiAccessEnabled { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? LastActiveAt { get; set; }
     public string? Department { get; set; }

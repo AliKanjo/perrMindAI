@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeerMindAI.Data;
 using PeerMindAI.Models;
+using PeerMindAI.Services;
 
 namespace PeerMindAI.Controllers;
 
@@ -14,11 +15,47 @@ public class AdminController : BaseController
 
     private readonly UserRepository _users;
     private readonly ApplicationRepository _applications;
+    private readonly AiUsageRepository _aiUsage;
+    private readonly AiClient _ai;
 
-    public AdminController(UserRepository users, ApplicationRepository applications)
+    public AdminController(UserRepository users, ApplicationRepository applications, AiUsageRepository aiUsage, AiClient ai)
     {
         _users = users;
         _applications = applications;
+        _aiUsage = aiUsage;
+        _ai = ai;
+    }
+
+    /// <summary>Requests, tokens, failures and speed of the AI features (FR-13).</summary>
+    [HttpGet("/admin/ai-usage")]
+    public async Task<IActionResult> AiUsage()
+    {
+        var page = await _aiUsage.GetPageAsync();
+        page.Provider = _ai.Provider;
+        page.Model = _ai.Model;
+        page.Configured = _ai.IsConfigured;
+        return View(page);
+    }
+
+    /// <summary>Turns the AI features on or off for one user.</summary>
+    [HttpPost("/admin/users/{id:int}/ai-access")]
+    public async Task<IActionResult> SetAiAccess(int id, bool enabled)
+    {
+        var user = await _users.GetByIdAsync(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+        try
+        {
+            await _users.SetAiAccessAsync(CurrentUserId, id, user.Status, enabled);
+            Toast(enabled ? "AI features turned on for this user." : "AI features turned off for this user.");
+        }
+        catch (DbRuleException ex)
+        {
+            Toast(ex.Message, isError: true);
+        }
+        return RedirectToAction(nameof(UserDetails), new { id });
     }
 
     [HttpGet("/admin")]

@@ -167,6 +167,7 @@ public class StudentDashboard
     public int CompletedSessions { get; set; }
     public int PendingRequests { get; set; }
     public TutorApplication? Application { get; set; }
+    public List<StudyRecommendation> Recommendations { get; set; } = new();
 }
 
 /// <summary>Tutor dashboard.</summary>

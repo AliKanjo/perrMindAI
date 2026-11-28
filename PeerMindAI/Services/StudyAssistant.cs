@@ -9,7 +9,7 @@ namespace PeerMindAI.Services;
 /// Answers a student's question from their own course materials (FR-08, FR-09, Scenario 2):
 /// 1. find the most relevant pages with SourceFinder,
 /// 2. if nothing matches, say so without calling the AI,
-/// 3. otherwise send only those pages to Claude with strict instructions,
+/// 3. otherwise send only those pages to the AI (Claude or Groq) with strict instructions,
 /// 4. save the question, the answer and the cited pages.
 /// </summary>
 public partial class StudyAssistant
@@ -31,15 +31,15 @@ public partial class StudyAssistant
 
     private readonly AssistantRepository _assistant;
     private readonly MaterialRepository _materials;
-    private readonly ClaudeClient _claude;
+    private readonly AiClient _ai;
     private readonly ILogger<StudyAssistant> _logger;
 
-    public StudyAssistant(AssistantRepository assistant, MaterialRepository materials, ClaudeClient claude,
+    public StudyAssistant(AssistantRepository assistant, MaterialRepository materials, AiClient ai,
         ILogger<StudyAssistant> logger)
     {
         _assistant = assistant;
         _materials = materials;
-        _claude = claude;
+        _ai = ai;
         _logger = logger;
     }
 
@@ -74,7 +74,7 @@ public partial class StudyAssistant
         }
         else
         {
-            var answer = await CallClaudeAsync(studentId, question, sources);
+            var answer = await CallAiAsync(studentId, question, sources);
             if (answer.Contains(NotFoundMarker))
             {
                 answerText = NotFoundAnswer;
@@ -109,7 +109,7 @@ public partial class StudyAssistant
             });
     }
 
-    private async Task<string> CallClaudeAsync(int studentId, string question, List<SourceChunk> sources)
+    private async Task<string> CallAiAsync(int studentId, string question, List<SourceChunk> sources)
     {
         var prompt = new StringBuilder("Excerpts from the student's course materials:\n\n");
         for (var i = 0; i < sources.Count; i++)
@@ -120,15 +120,15 @@ public partial class StudyAssistant
 
         try
         {
-            var answer = await _claude.AskAsync(SystemPrompt, prompt.ToString());
-            await _assistant.LogUsageAsync(studentId, _claude.Model, answer.InputTokens, answer.OutputTokens,
+            var answer = await _ai.AskAsync(SystemPrompt, prompt.ToString());
+            await _assistant.LogUsageAsync(studentId, _ai.Model, answer.InputTokens, answer.OutputTokens,
                 answer.LatencyMs, succeeded: true, error: null);
             return answer.Text;
         }
         catch (AiServiceException ex)
         {
             _logger.LogWarning("AI request failed: {Details}", ex.TechnicalDetails);
-            await _assistant.LogUsageAsync(studentId, _claude.Model, 0, 0, 0, succeeded: false, error: ex.TechnicalDetails);
+            await _assistant.LogUsageAsync(studentId, _ai.Model, 0, 0, 0, succeeded: false, error: ex.TechnicalDetails);
             throw;
         }
     }
