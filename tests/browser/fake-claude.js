@@ -34,6 +34,8 @@ function answerFor(system, prompt) {
     const question = (prompt.split('Question:').pop() || '').toLowerCase();
     if (question.includes('invented')) return 'NOT_IN_MATERIALS';
     const excerpts = (prompt.match(/\[\d+\] \(/g) || []).length;
+    // some real models (gpt-oss) cite with 【1】 brackets instead of [1]
+    if (question.includes('lifo')) return 'A stack is LIFO and a queue is FIFO \u30101\u3011.';
     return `Based on your notes: this answer uses the most relevant excerpt [1]${excerpts > 1 ? ' and also [2]' : ''}.`;
 }
 

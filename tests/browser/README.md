@@ -9,7 +9,7 @@ The results are summarised in [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md).
 | `workflows.test.js` | log-in, registration, tutor application and approval, course CRUD, users, availability, tutor search (Fetch), booking, double booking, reviews, accept/complete (Fetch), cancellation | 47 |
 | `moderation.test.js` | reporting a user and a review, admin decisions and their effects | 20 |
 | `project4.test.js` | change and reset password, material upload, AI assistant, access control, security headers, SQL injection, phone and tablet layouts | 48 |
-| `final.test.js` | AI practice quizzes and recommendations, tutors managing their courses, AI usage page, AI access switch | 36 |
+| `final.test.js` | AI practice quizzes and recommendations, tutors managing their courses, AI usage page, AI access switch | 37 |
 | `performance.test.js` | response times of 23 pages as the three roles (NFR-03: 95% within 2 seconds) | – |
 
 ## Running them

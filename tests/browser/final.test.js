@@ -103,6 +103,13 @@ async function makePdf(browser, file, html) {
         finish(); return;
     }
 
+    // citations written as 【1】 (as gpt-oss does) are turned into page references too
+    await page.goto(BASE + '/assistant?c=1'); await page.waitForLoadState('networkidle');
+    await page.fill('#question', 'Explain LIFO vs FIFO'); await page.locator('#ask-form button[type=submit]').click();
+    await page.waitForFunction(() => !document.querySelector('#chat').textContent.includes('Searching your materials'));
+    const lastAnswer = await page.locator('#chat .bubble.ai').last().textContent();
+    check('citations written as \u30101\u3011 become page references', !lastAnswer.includes('\u3010') && lastAnswer.includes('[Lecture 5'), lastAnswer.slice(0, 120));
+
     // dashboard recommendations (FR-11) and dismiss with fetch
     await page.goto(BASE + '/student');
     const recs = await page.locator('[data-recommendation]').count();

@@ -45,7 +45,8 @@ public partial class StudyAssistant
 
     public record Reply(AiMessage Question, AiMessage Answer);
 
-    [GeneratedRegex(@"\[(\d+)\]")]
+    // a citation such as [2]; some models write 【2】 or 【2†source】 instead
+    [GeneratedRegex(@"[\[【](\d+)(?:†[^\]】]*)?[\]】]")]
     private static partial Regex CitationPattern();
 
     /// <summary>
